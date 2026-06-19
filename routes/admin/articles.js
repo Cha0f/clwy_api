@@ -99,13 +99,6 @@ router.get('/:id', async (req, res) => {
 router.post('/', async function (req, res) {
   // 白名单过滤
   const body = filterBody(req);
-  // 验证标题是否为空
-  if(body.title.trim() === '') {
-    return res.status(500).json({
-      status: 500,
-      message: '标题不能为空'
-    })
-  }
   try {
     // 创建文章
     const article = await Article.create(body);
@@ -116,11 +109,20 @@ router.post('/', async function (req, res) {
       data: article,
     });
   } catch (err) {
-    res.status(500).json({
-      status: 500,
-      message: '文章创建失败',
-      errors: [err.message],
-    });
+    if (err.name === 'SequelizeValidationError') {
+      const errors = err.errors.map((e) => e.message);
+      res.status(400).json({
+        status: 400,
+        message: '请求参数错误。',
+        errors,
+      });
+    } else {
+      res.status(500).json({
+        status: 500,
+        message: '创建文章失败。',
+        errors: [err.message],
+      });
+    }
   }
 });
 
