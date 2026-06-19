@@ -98,12 +98,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async function (req, res) {
   // 白名单过滤
-  // 因为用户提交的数据可能会包含一些我们不需要的数据，所以我们需要过滤一下
-  // 只取 title 和 content
-  const body = {
-    title: req.body.title,
-    content: req.body.content,
-  };
+  const body = filterBody(req);
   try {
     // 创建文章
     const article = await Article.create(body);
@@ -162,12 +157,7 @@ router.delete('/:id', async function (req, res) {
  */
 router.put('/:id', async function (req, res) {
   // 白名单过滤
-  // 因为用户提交的数据可能会包含一些我们不需要的数据，所以我们需要过滤一下
-  // 只取 title 和 content
-  const body = {
-    title: req.body.title,
-    content: req.body.content,
-  };
+  const body = filterBody(req);
   try {
     // 获取文章的id
     const { id } = req.params;
@@ -196,5 +186,17 @@ router.put('/:id', async function (req, res) {
     });
   }
 });
+
+/**
+ * 公共方法: 白名单过滤
+ * @param req
+ * @return {{title, content: (string|string|DocumentFragment|*)}}
+ */
+function filterBody(req) {
+  return {
+    title: req.body.title,
+    content: req.body.content,
+  };
+}
 
 module.exports = router;
