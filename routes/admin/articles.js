@@ -99,6 +99,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', async function (req, res) {
   // 白名单过滤
   const body = filterBody(req);
+  // 验证标题是否为空
+  if(body.title.trim() === '') {
+    return res.status(500).json({
+      status: 500,
+      message: '标题不能为空'
+    })
+  }
   try {
     // 创建文章
     const article = await Article.create(body);
