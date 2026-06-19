@@ -97,9 +97,16 @@ router.get('/:id', async (req, res) => {
  * POST /admin/articles
  */
 router.post('/', async function (req, res) {
+  // 白名单过滤
+  // 因为用户提交的数据可能会包含一些我们不需要的数据，所以我们需要过滤一下
+  // 只取 title 和 content
+  const body = {
+    title: req.body.title,
+    content: req.body.content,
+  };
   try {
     // 创建文章
-    const article = await Article.create(req.body);
+    const article = await Article.create(body);
     // 返回创建文章的结果
     res.status(201).json({
       status: 200,
@@ -154,6 +161,13 @@ router.delete('/:id', async function (req, res) {
  * PUT /admin/articles/:id
  */
 router.put('/:id', async function (req, res) {
+  // 白名单过滤
+  // 因为用户提交的数据可能会包含一些我们不需要的数据，所以我们需要过滤一下
+  // 只取 title 和 content
+  const body = {
+    title: req.body.title,
+    content: req.body.content,
+  };
   try {
     // 获取文章的id
     const { id } = req.params;
@@ -162,7 +176,7 @@ router.put('/:id', async function (req, res) {
     // 根据查询文章的结果做判断
     if (article) {
       // 更新文章
-      await article.update(req.body);
+      await article.update(body);
       // 返回文章更新的结果
       res.status(200).json({
         status: 200,
