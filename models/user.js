@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+const bcrypt = require('bcryptjs');
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     /**
@@ -55,10 +56,18 @@ module.exports = (sequelize, DataTypes) => {
       password: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-          notNull: { msg: '密码必须填写。' },
-          notEmpty: { msg: '密码不能为空。' },
-          len: { args: [6, 45], msg: '密码长度必须是6 ~ 45之间。' },
+        set(value) {
+          if (!value) {
+            throw new Error('密码必须填写。');
+          }
+          if (value.trim() === '') {
+            throw new Error('密码不能为空');
+          }
+          if (value.length <= 1) {
+            throw new Error('密码长度必须是6 ～ 45之间。');
+          }
+          // 对密码进行加密
+          this.setDataValue('password', bcrypt.hashSync(value, 10));
         },
       },
       avatar: {
