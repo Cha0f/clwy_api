@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { Article } = require('../../models');
+const { Course, Category, User } = require('../../models');
 const { Op } = require('sequelize');
 // 引入错误类
 const { NotFondError, success, failure } = require('../../utils/response');
 
 /**
- * 查询文章列表
- * GET /admin/articles
+ * 查询课程列表
+ * GET /admin/courses
  */
 router.get('/', async function (req, res) {
   try {
@@ -20,6 +20,7 @@ router.get('/', async function (req, res) {
     const offset = (currentPage - 1) * pageSize;
     // 定义查询条件
     const condition = {
+      ...getCondition(),
       order: [['id', 'DESC']],
       // 在查询条件中添加offset和pageSize
       limit: pageSize,
@@ -27,10 +28,43 @@ router.get('/', async function (req, res) {
     };
 
     // 如果有title查询参数，就添加到where条件中
-    if (query.title) {
+    if (query.categoryId) {
       condition.where = {
-        title: {
-          [Op.like]: `%${query.title}%`,
+        categoryId: {
+          [Op.eq]: query.categoryId,
+        },
+      };
+    }
+
+    if (query.userId) {
+      condition.where = {
+        userId: {
+          [Op.eq]: query.userId,
+        },
+      };
+    }
+
+    if (query.name) {
+      condition.where = {
+        name: {
+          [Op.like]: `%${query.name}%`,
+        },
+      };
+    }
+
+    if (query.recommended) {
+      condition.where = {
+        recommended: {
+          // 需要转布尔值
+          [Op.eq]: query.recommended === 'true',
+        },
+      };
+    }
+
+    if (query.introductory) {
+      condition.where = {
+        introductory: {
+          [Op.eq]: query.introductory === 'true',
         },
       };
     }
@@ -39,10 +73,10 @@ router.get('/', async function (req, res) {
     // 将findAll方法改为findAndCountAll方法
     // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
     // count 是查询到的数据的总数， rows 中才是查询到的数据
-    const { count, rows } = await Article.findAndCountAll(condition);
+    const { count, rows } = await Course.findAndCountAll(condition);
     // 返回查询结果
-    success(res, '查询文章列表成功。', {
-      articles: rows,
+    success(res, '查询课程列表成功。', {
+      courses: rows,
       pagination: {
         total: count,
         currentPage,
@@ -55,68 +89,68 @@ router.get('/', async function (req, res) {
 });
 
 /**
- * 查询文章详情
- * GET /admin/articles/:id
+ * 查询课程详情
+ * GET /admin/courses/:id
  */
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const article = await getArticles(req);
+    const course = await getCourses(req);
     // 返回查询结果
-    success(res, '查询文章成功。', { article });
+    success(res, '查询课程成功。', { course });
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 创建文章
- * POST /admin/articles
+ * 创建课程
+ * POST /admin/courses
  */
 router.post('/', async function (req, res) {
   try {
     // 白名单过滤
     const body = filterBody(req);
-    // 创建文章
-    const article = await Article.create(body);
-    // 返回创建文章的结果
-    success(res, '创建文章成功。', { article }, 201);
+    // 创建课程
+    const course = await Course.create(body);
+    // 返回创建课程的结果
+    success(res, '创建课程成功。', { course }, 201);
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 删除文章
- * DELETE /admin/article/:id
+ * 删除课程
+ * DELETE /admin/course/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询文章
-    const article = await getArticles(req);
-    // 删除文章
-    await article.destroy();
-    // 返回删除文章的结果
-    success(res, '文章删除成功。');
+    // 查询课程
+    const course = await getCourses(req);
+    // 删除课程
+    await course.destroy();
+    // 返回删除课程的结果
+    success(res, '课程删除成功。');
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 更新文章
- * PUT /admin/articles/:id
+ * 更新课程
+ * PUT /admin/courses/:id
  */
 router.put('/:id', async function (req, res) {
   try {
     // 白名单过滤
     const body = filterBody(req);
-    // 查询文章
-    const article = await getArticles(req);
-    // 更新文章
-    await article.update(body);
-    // 返回文章更新的结果
-    success(res, '文章更新成功', { article });
+    // 查询课程
+    const course = await getCourses(req);
+    // 更新课程
+    await course.update(body);
+    // 返回课程更新的结果
+    success(res, '课程更新成功', { course });
   } catch (err) {
     failure(res, err);
   }
@@ -125,28 +159,48 @@ router.put('/:id', async function (req, res) {
 /**
  * 公共方法: 白名单过滤
  * @param req
- * @return {{title, content: (string|string|DocumentFragment|*)}}
+ * @returns {{image: *, name, introductory: (boolean|*), userId: (number|*), categoryId: (number|*), content, recommended: (boolean|*)}}
  */
 function filterBody(req) {
   return {
-    title: req.body.title,
+    categoryId: req.body.categoryId,
+    userId: req.body.userId,
+    name: req.body.name,
+    image: req.body.image,
+    recommended: req.body.recommended,
+    introductory: req.body.introductory,
     content: req.body.content,
   };
 }
 
 /**
- * 公共方法: 查询当前文章
+ * 公共方法：关联分类，用户数据
+ * @returns {{include: [{as: string,model,attributes: string[]}],attributes: {exclude: string[]}}}
  */
-async function getArticles(req) {
-  // 获取文章id
+function getCondition() {
+  return {
+    attributes: { exclude: ['CategoryId', 'UserId'] },
+    include: [
+      { model: Category, as: 'category', attributes: ['id', 'name'] },
+      { model: User, as: 'user', attributes: ['id', 'username', 'avatar'] },
+    ],
+  };
+}
+
+/**
+ * 公共方法: 查询当前课程
+ */
+async function getCourses(req) {
+  // 获取课程id
   const { id } = req.params;
-  // 查询当前文章
-  const articles = await Article.findByPk(id);
+  const condition = getCondition();
+  // 查询当前课程
+  const courses = await Course.findByPk(id, condition);
   // 如果没有找到
-  if (!articles) {
-    throw new NotFondError(`ID: ${id}的文章没有找到。`);
+  if (!courses) {
+    throw new NotFondError(`ID: ${id}的课程没有找到。`);
   }
-  return articles;
+  return courses;
 }
 
 module.exports = router;

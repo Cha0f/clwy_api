@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Category } = require('../../models');
+const { Category, Course } = require('../../models');
 const { Op } = require('sequelize');
 // 引入错误类
 const { NotFondError, success, failure } = require('../../utils/response');
@@ -140,8 +140,12 @@ function filterBody(req) {
 async function getCategory(req) {
   // 获取分类id
   const { id } = req.params;
+  // 定义查询条件
+  const condition = {
+    include: [{ model: Course, as: 'course' }],
+  };
   // 查询当前分类
-  const categories = await Category.findByPk(id);
+  const categories = await Category.findByPk(id, condition);
   // 如果没有找到
   if (!categories) {
     throw new NotFondError(`ID: ${id}的分类没有找到。`);
