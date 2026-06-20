@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { Category } = require('../../models');
+const { Article } = require('../../models');
 const { Op } = require('sequelize');
 // 引入错误类
 const { NotFondError, success, failure } = require('../../utils/response');
 
 /**
- * 查询分类列表
- * GET /admin/categories
+ * 查询文章列表
+ * GET /admin/articles
  */
 router.get('/', async function (req, res) {
   try {
@@ -20,17 +20,17 @@ router.get('/', async function (req, res) {
     const offset = (currentPage - 1) * pageSize;
     // 定义查询条件
     const condition = {
-      order: [['id', 'ASC']],
+      order: [['id', 'DESC']],
       // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
     };
 
-    // 如果有name查询参数，就添加到where条件中
-    if (query.name) {
+    // 如果有title查询参数，就添加到where条件中
+    if (query.title) {
       condition.where = {
-        name: {
-          [Op.like]: `%${query.name}%`,
+        title: {
+          [Op.like]: `%${query.title}%`,
         },
       };
     }
@@ -39,10 +39,10 @@ router.get('/', async function (req, res) {
     // 将findAll方法改为findAndCountAll方法
     // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
     // count 是查询到的数据的总数， rows 中才是查询到的数据
-    const { count, rows } = await Category.findAndCountAll(condition);
+    const { count, rows } = await Article.findAndCountAll(condition);
     // 返回查询结果
-    success(res, '查询分类列表成功。', {
-      categories: rows,
+    success(res, '查询文章列表成功。', {
+      articles: rows,
       pagination: {
         total: count,
         currentPage,
@@ -55,68 +55,68 @@ router.get('/', async function (req, res) {
 });
 
 /**
- * 查询分类详情
- * GET /admin/categories/:id
+ * 查询文章详情
+ * GET /admin/articles/:id
  */
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const category = await getCategory(req);
+    const article = await getArticles(req);
     // 返回查询结果
-    success(res, '查询分类成功。', { category });
+    success(res, '查询文章成功。', { article });
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 创建分类
- * POST /admin/categories
+ * 创建文章
+ * POST /admin/articles
  */
 router.post('/', async function (req, res) {
   try {
     // 白名单过滤
     const body = filterBody(req);
-    // 创建分类
-    const category = await Category.create(body);
-    // 返回创建分类的结果
-    success(res, '创建分类成功。', { category }, 201);
+    // 创建文章
+    const article = await Article.create(body);
+    // 返回创建文章的结果
+    success(res, '创建文章成功。', { article }, 201);
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 删除分类
- * DELETE /admin/category/:id
+ * 删除文章
+ * DELETE /admin/article/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询分类
-    const category = await getCategory(req);
-    // 删除分类
-    await category.destroy();
-    // 返回删除分类的结果
-    success(res, '分类删除成功。');
+    // 查询文章
+    const article = await getArticles(req);
+    // 删除文章
+    await article.destroy();
+    // 返回删除文章的结果
+    success(res, '文章删除成功。');
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 更新分类
- * PUT /admin/categories/:id
+ * 更新文章
+ * PUT /admin/articles/:id
  */
 router.put('/:id', async function (req, res) {
   try {
     // 白名单过滤
     const body = filterBody(req);
-    // 查询分类
-    const category = await getCategory(req);
-    // 更新分类
-    await category.update(body);
-    // 返回分类更新的结果
-    success(res, '分类更新成功', { category });
+    // 查询文章
+    const article = await getArticles(req);
+    // 更新文章
+    await article.update(body);
+    // 返回文章更新的结果
+    success(res, '文章更新成功', { article });
   } catch (err) {
     failure(res, err);
   }
@@ -125,28 +125,28 @@ router.put('/:id', async function (req, res) {
 /**
  * 公共方法: 白名单过滤
  * @param req
- * @return {{name, rank: *}}
+ * @return {{title, content: (string|string|DocumentFragment|*)}}
  */
 function filterBody(req) {
   return {
-    name: req.body.name,
-    rank: req.body.rank,
+    title: req.body.title,
+    content: req.body.content,
   };
 }
 
 /**
- * 公共方法: 查询当前分类
+ * 公共方法: 查询当前文章
  */
-async function getCategory(req) {
-  // 获取分类id
+async function getArticles(req) {
+  // 获取文章id
   const { id } = req.params;
-  // 查询当前分类
-  const categories = await Category.findByPk(id);
+  // 查询当前文章
+  const articles = await Article.findByPk(id);
   // 如果没有找到
-  if (!categories) {
-    throw new NotFondError(`ID: ${id}的分类没有找到。`);
+  if (!articles) {
+    throw new NotFondError(`ID: ${id}的文章没有找到。`);
   }
-  return categories;
+  return articles;
 }
 
 module.exports = router;
