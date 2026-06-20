@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Course, Category, User } = require('../../models');
+const { Course, Category, User, Chapter } = require('../../models');
 const { Op } = require('sequelize');
 // 引入错误类
 const { NotFondError, success, failure } = require('../../utils/response');
@@ -128,6 +128,11 @@ router.delete('/:id', async function (req, res) {
   try {
     // 查询课程
     const course = await getCourses(req);
+    // 查询课程是否有章节
+    const count = await Chapter.count({ where: { courseId: req.params.id } });
+    if (count > 0) {
+      throw new Error('当前课程有章节，无法删除。');
+    }
     // 删除课程
     await course.destroy();
     // 返回删除课程的结果
