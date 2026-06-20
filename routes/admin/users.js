@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { Article } = require('../../models');
+const { User } = require('../../models');
 const { Op } = require('sequelize');
 // 引入错误类
 const { NotFondError, success, failure } = require('../../utils/response');
 
 /**
- * 查询文章列表
- * GET /admin/articles
+ * 查询用户列表
+ * GET /admin/users
  */
 router.get('/', async function (req, res) {
   try {
@@ -27,10 +27,34 @@ router.get('/', async function (req, res) {
     };
 
     // 如果有title查询参数，就添加到where条件中
-    if (query.title) {
+    if (query.email) {
       condition.where = {
-        title: {
-          [Op.like]: `%${query.title}%`,
+        email: {
+          [Op.eq]: query.email,
+        },
+      };
+    }
+
+    if (query.username) {
+      condition.where = {
+        username: {
+          [Op.eq]: query.username,
+        },
+      };
+    }
+
+    if (query.nickname) {
+      condition.where = {
+        nickname: {
+          [Op.like]: `%${query.nickname}%`,
+        },
+      };
+    }
+
+    if (query.role) {
+      condition.where = {
+        role: {
+          [Op.eq]: query.role,
         },
       };
     }
@@ -39,10 +63,10 @@ router.get('/', async function (req, res) {
     // 将findAll方法改为findAndCountAll方法
     // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
     // count 是查询到的数据的总数， rows 中才是查询到的数据
-    const { count, rows } = await Article.findAndCountAll(condition);
+    const { count, rows } = await User.findAndCountAll(condition);
     // 返回查询结果
-    success(res, '查询文章列表成功。', {
-      articles: rows,
+    success(res, '查询用户列表成功。', {
+      users: rows,
       pagination: {
         total: count,
         currentPage,
@@ -55,68 +79,68 @@ router.get('/', async function (req, res) {
 });
 
 /**
- * 查询文章详情
- * GET /admin/articles/:id
+ * 查询用户详情
+ * GET /admin/users/:id
  */
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const article = await getArticles(req);
+    const user = await getUsers(req);
     // 返回查询结果
-    success(res, '查询文章成功。', { article });
+    success(res, '查询用户成功。', { user });
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 创建文章
- * POST /admin/articles
+ * 创建用户
+ * POST /admin/users
  */
 router.post('/', async function (req, res) {
   try {
     // 白名单过滤
     const body = filterBody(req);
-    // 创建文章
-    const article = await Article.create(body);
-    // 返回创建文章的结果
-    success(res, '创建文章成功。', { article }, 201);
+    // 创建用户
+    const user = await User.create(body);
+    // 返回创建用户的结果
+    success(res, '创建用户成功。', { user }, 201);
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 删除文章
- * DELETE /admin/article/:id
+ * 删除用户
+ * DELETE /admin/user/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询文章
-    const article = await getArticles(req);
-    // 删除文章
-    await article.destroy();
-    // 返回删除文章的结果
-    success(res, '文章删除成功。');
+    // 查询用户
+    const user = await getUsers(req);
+    // 删除用户
+    await user.destroy();
+    // 返回删除用户的结果
+    success(res, '用户删除成功。');
   } catch (err) {
     failure(res, err);
   }
 });
 
 /**
- * 更新文章
- * PUT /admin/articles/:id
+ * 更新用户
+ * PUT /admin/users/:id
  */
 router.put('/:id', async function (req, res) {
   try {
     // 白名单过滤
     const body = filterBody(req);
-    // 查询文章
-    const article = await getArticles(req);
-    // 更新文章
-    await article.update(body);
-    // 返回文章更新的结果
-    success(res, '文章更新成功', { article });
+    // 查询用户
+    const user = await getUsers(req);
+    // 更新用户
+    await user.update(body);
+    // 返回用户更新的结果
+    success(res, '用户更新成功', { user });
   } catch (err) {
     failure(res, err);
   }
@@ -125,28 +149,35 @@ router.put('/:id', async function (req, res) {
 /**
  * 公共方法: 白名单过滤
  * @param req
- * @return {{title, content: (string|string|DocumentFragment|*)}}
+ * @return {{password, role: (number|string|*), introduce: ({type: *}|*), sex: ({allowNull: boolean, type: *, validate: {notNull: {msg: string}, notEmpty: {msg: string}, isIn: {args: [number[]], msg: string}}}|{defaultValue: number, allowNull: boolean, type: *}|*), nickname: (string|*), company: ({type: *}|*), avatar: ({type: *, validate: {isUrl: {msg: string}}}|*), email: (string|*), username}}
  */
 function filterBody(req) {
   return {
-    title: req.body.title,
-    content: req.body.content,
+    email: req.body.email,
+    username: req.body.username,
+    nickname: req.body.nickname,
+    password: req.body.password,
+    avatar: req.body.avatar,
+    gender: req.body.gender,
+    company: req.body.company,
+    introduce: req.body.introduce,
+    role: req.body.role,
   };
 }
 
 /**
- * 公共方法: 查询当前文章
+ * 公共方法: 查询当前用户
  */
-async function getArticles(req) {
-  // 获取文章id
+async function getUsers(req) {
+  // 获取用户id
   const { id } = req.params;
-  // 查询当前文章
-  const articles = await Article.findByPk(id);
+  // 查询当前用户
+  const users = await User.findByPk(id);
   // 如果没有找到
-  if (!articles) {
-    throw new NotFondError(`ID: ${id}的文章没有找到。`);
+  if (!users) {
+    throw new NotFondError(`ID: ${id}的用户没有找到。`);
   }
-  return articles;
+  return users;
 }
 
 module.exports = router;
