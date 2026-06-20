@@ -100,6 +100,10 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'User',
+      indexes: [
+        { unique: true, fields: ['email'] },
+        { unique: true, fields: ['password'] },
+      ],
     },
   );
   return User;
