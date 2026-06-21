@@ -30,9 +30,13 @@ router.get('/', async function (req, res) {
       offset,
     };
 
+    // 初始化筛选条件
+    condition.where = {};
+
     // 如果有name查询参数，就添加到where条件中
     if (query.name) {
       condition.where = {
+        ...condition.where,
         name: {
           [Op.like]: `%${query.name}%`,
         },

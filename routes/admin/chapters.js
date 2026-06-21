@@ -34,7 +34,7 @@ router.get('/', async function (req, res) {
       limit: pageSize,
       offset,
     };
-    // 查找章节id
+    // 初始化筛选条件，课程ID必填
     condition.where = {
       courseId: {
         [Op.eq]: query.courseId,
@@ -44,6 +44,7 @@ router.get('/', async function (req, res) {
     // 如果有title查询参数，就添加到where条件中
     if (query.title) {
       condition.where = {
+        ...condition.where,
         title: {
           [Op.like]: `%${query.title}%`,
         },

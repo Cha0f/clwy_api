@@ -28,9 +28,13 @@ router.get('/', async function (req, res) {
       offset,
     };
 
-    // 如果有title查询参数，就添加到where条件中
+    // 初始化筛选条件
+    condition.where = {};
+
+    // 如果有查询参数，就添加到where条件中
     if (query.categoryId) {
       condition.where = {
+        ...condition.where,
         categoryId: {
           [Op.eq]: query.categoryId,
         },
@@ -39,6 +43,7 @@ router.get('/', async function (req, res) {
 
     if (query.userId) {
       condition.where = {
+        ...condition.where,
         userId: {
           [Op.eq]: query.userId,
         },
@@ -47,6 +52,7 @@ router.get('/', async function (req, res) {
 
     if (query.name) {
       condition.where = {
+        ...condition.where,
         name: {
           [Op.like]: `%${query.name}%`,
         },
@@ -55,6 +61,7 @@ router.get('/', async function (req, res) {
 
     if (query.recommended) {
       condition.where = {
+        ...condition.where,
         recommended: {
           // 需要转布尔值
           [Op.eq]: query.recommended === 'true',
@@ -64,6 +71,7 @@ router.get('/', async function (req, res) {
 
     if (query.introductory) {
       condition.where = {
+        ...condition.where,
         introductory: {
           [Op.eq]: query.introductory === 'true',
         },

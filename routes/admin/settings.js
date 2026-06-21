@@ -48,7 +48,7 @@ function filterBody(req) {
   return {
     name: req.body.name,
     icp: req.body.icp,
-    category: req.body.copyright,
+    copyright: req.body.copyright,
   };
 }
 

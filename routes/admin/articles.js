@@ -27,9 +27,13 @@ router.get('/', async function (req, res) {
       offset,
     };
 
+    // 初始化筛选条件
+    condition.where = {};
+
     // 如果有title查询参数，就添加到where条件中
     if (query.title) {
       condition.where = {
+        ...condition.where,
         title: {
           [Op.like]: `%${query.title}%`,
         },

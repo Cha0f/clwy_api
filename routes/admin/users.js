@@ -27,9 +27,13 @@ router.get('/', async function (req, res) {
       offset,
     };
 
-    // 如果有title查询参数，就添加到where条件中
+    // 初始化筛选条件
+    condition.where = {};
+
+    // 如果有查询参数，就添加到where条件中
     if (query.email) {
       condition.where = {
+        ...condition.where,
         email: {
           [Op.eq]: query.email,
         },
@@ -38,6 +42,7 @@ router.get('/', async function (req, res) {
 
     if (query.username) {
       condition.where = {
+        ...condition.where,
         username: {
           [Op.eq]: query.username,
         },
@@ -46,6 +51,7 @@ router.get('/', async function (req, res) {
 
     if (query.nickname) {
       condition.where = {
+        ...condition.where,
         nickname: {
           [Op.like]: `%${query.nickname}%`,
         },
@@ -54,6 +60,7 @@ router.get('/', async function (req, res) {
 
     if (query.role) {
       condition.where = {
+        ...condition.where,
         role: {
           [Op.eq]: query.role,
         },
