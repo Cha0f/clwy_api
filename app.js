@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 // 引入中间件
 const adminAuth = require('./middlewares/admin-auth');
+const userAuth = require('./middlewares/user-auth');
 require('dotenv').config();
 
 // 前台路由文件
@@ -15,6 +16,8 @@ const articlesRouter = require('./routes/articles');
 const settingsRouter = require('./routes/settings');
 const searchRouter = require('./routes/search');
 const authRouter = require('./routes/auth');
+const usersRouter = require('./routes/users');
+const likesRouter = require('./routes/likes');
 // 后台路由文件
 const adminArticlesRouter = require('./routes/admin/articles');
 const adminCategoriesRouter = require('./routes/admin/categories');
@@ -42,6 +45,8 @@ app.use('/articles', articlesRouter);
 app.use('/settings', settingsRouter);
 app.use('/search', searchRouter);
 app.use('/auth', authRouter);
+app.use('/users', userAuth, usersRouter);
+app.use('/likes', userAuth, likesRouter);
 // 后台路由配置
 app.use('/admin/articles', adminAuth, adminArticlesRouter);
 app.use('/admin/categories', adminAuth, adminCategoriesRouter);
