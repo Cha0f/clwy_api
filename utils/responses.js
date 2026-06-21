@@ -44,6 +44,22 @@ function failure(res, error) {
     });
   }
 
+  if (error.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      status: 401,
+      message: '认证失败',
+      errors: ['您提交的 token 错误。'],
+    });
+  }
+
+  if (error.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      status: 401,
+      message: '认证失败。',
+      errors: ['您的 token 已过期。'],
+    });
+  }
+
   if (error.name === 'NotFoundError') {
     return res.status(404).json({
       status: 404,
