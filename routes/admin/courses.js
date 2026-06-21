@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { Course, Category, User, Chapter } = require('../../models');
 const { Op } = require('sequelize');
-// 引入封装工具
-const { NotFoundError } = require('../../utils/errors');
+const { NotFoundError, BadRequestError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
+const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询课程列表
@@ -14,68 +14,37 @@ router.get('/', async function (req, res) {
   try {
     // 定义查询参数
     const query = req.query;
-    // 获取current_page和page_seize
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    // 计算offset
-    const offset = (currentPage - 1) * pageSize;
-    // 定义查询条件
+    const { currentPage, pageSize, offset } = getPagination(query);
+
     const condition = {
       ...getCondition(),
       order: [['id', 'DESC']],
-      // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
+      where: {},
     };
 
-    // 初始化筛选条件
-    condition.where = {};
-
-    // 如果有查询参数，就添加到where条件中
     if (query.categoryId) {
-      condition.where = {
-        ...condition.where,
-        categoryId: {
-          [Op.eq]: query.categoryId,
-        },
-      };
+      condition.where.categoryId = { [Op.eq]: query.categoryId };
     }
 
     if (query.userId) {
-      condition.where = {
-        ...condition.where,
-        userId: {
-          [Op.eq]: query.userId,
-        },
-      };
+      condition.where.userId = { [Op.eq]: query.userId };
     }
 
     if (query.name) {
-      condition.where = {
-        ...condition.where,
-        name: {
-          [Op.like]: `%${query.name}%`,
-        },
-      };
+      const name = String(query.name).trim();
+      if (name) {
+        condition.where.name = { [Op.like]: `%${name}%` };
+      }
     }
 
     if (query.recommended) {
-      condition.where = {
-        ...condition.where,
-        recommended: {
-          // 需要转布尔值
-          [Op.eq]: query.recommended === 'true',
-        },
-      };
+      condition.where.recommended = { [Op.eq]: query.recommended === 'true' };
     }
 
     if (query.introductory) {
-      condition.where = {
-        ...condition.where,
-        introductory: {
-          [Op.eq]: query.introductory === 'true',
-        },
-      };
+      condition.where.introductory = { [Op.eq]: query.introductory === 'true' };
     }
 
     // 查询数据
@@ -140,7 +109,7 @@ router.delete('/:id', async function (req, res) {
     // 查询课程是否有章节
     const count = await Chapter.count({ where: { courseId: req.params.id } });
     if (count > 0) {
-      throw new Error('当前课程有章节，无法删除。');
+      throw new BadRequestError('当前课程有章节，无法删除。');
     }
     // 删除课程
     await course.destroy();

@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { Category, Course } = require('../../models');
 const { Op } = require('sequelize');
-// 引入封装工具
-const { NotFoundError } = require('../../utils/errors');
+const { NotFoundError, BadRequestError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
+const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询分类列表
@@ -12,35 +12,26 @@ const { success, failure } = require('../../utils/responses');
  */
 router.get('/', async function (req, res) {
   try {
-    // 定义查询参数
     const query = req.query;
-    // 获取current_page和page_seize
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    // 计算offset
-    const offset = (currentPage - 1) * pageSize;
-    // 定义查询条件
+    const { currentPage, pageSize, offset } = getPagination(query);
+
     const condition = {
       order: [
         ['rank', 'ASC'],
         ['id', 'ASC'],
       ],
-      // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
+      where: {},
     };
 
-    // 初始化筛选条件
-    condition.where = {};
-
-    // 如果有name查询参数，就添加到where条件中
     if (query.name) {
-      condition.where = {
-        ...condition.where,
-        name: {
-          [Op.like]: `%${query.name}%`,
-        },
-      };
+      const name = String(query.name).trim();
+      if (name) {
+        condition.where.name = {
+          [Op.like]: `%${name}%`,
+        };
+      }
     }
 
     // 查询数据
@@ -106,7 +97,7 @@ router.delete('/:id', async function (req, res) {
     const count = await Course.count({ where: { categoryId: req.params.id } });
     // 判断数量
     if (count > 0) {
-      throw new Error('当前分类有课程，无法删除。');
+      throw new BadRequestError('当前分类有课程，无法删除。');
     }
     // 删除分类
     await category.destroy();

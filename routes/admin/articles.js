@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 // 引入封装工具
 const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
+const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询文章列表
@@ -12,32 +13,23 @@ const { success, failure } = require('../../utils/responses');
  */
 router.get('/', async function (req, res) {
   try {
-    // 定义查询参数
     const query = req.query;
-    // 获取current_page和page_seize
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    // 计算offset
-    const offset = (currentPage - 1) * pageSize;
-    // 定义查询条件
+    const { currentPage, pageSize, offset } = getPagination(query);
+
     const condition = {
       order: [['id', 'DESC']],
-      // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
+      where: {},
     };
 
-    // 初始化筛选条件
-    condition.where = {};
-
-    // 如果有title查询参数，就添加到where条件中
     if (query.title) {
-      condition.where = {
-        ...condition.where,
-        title: {
-          [Op.like]: `%${query.title}%`,
-        },
-      };
+      const title = String(query.title).trim();
+      if (title) {
+        condition.where.title = {
+          [Op.like]: `%${title}%`,
+        };
+      }
     }
 
     // 查询数据

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { Chapter, Course } = require('../../models');
-const { NotFoundError } = require('../../utils/errors');
+const { NotFoundError, BadRequestError } = require('../../utils/errors');
 const { Op } = require('sequelize');
-// 引入封装工具
 const { success, failure } = require('../../utils/responses');
+const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询章节列表
@@ -15,40 +15,32 @@ router.get('/', async function (req, res) {
     // 定义查询参数
     const query = req.query;
     if (!query.courseId) {
-      throw new Error('获取章节列表失败，课程ID不能为空。');
+      throw new BadRequestError('获取章节列表失败，课程ID不能为空。');
     }
-    // 获取current_page和page_seize
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    // 计算offset
-    const offset = (currentPage - 1) * pageSize;
+    const { currentPage, pageSize, offset } = getPagination(query);
 
-    // 定义查询条件
     const condition = {
       ...getCondition(),
       order: [
         ['rank', 'ASC'],
         ['id', 'ASC'],
       ],
-      // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
-    };
-    // 初始化筛选条件，课程ID必填
-    condition.where = {
-      courseId: {
-        [Op.eq]: query.courseId,
+      where: {
+        courseId: {
+          [Op.eq]: query.courseId,
+        },
       },
     };
 
-    // 如果有title查询参数，就添加到where条件中
     if (query.title) {
-      condition.where = {
-        ...condition.where,
-        title: {
-          [Op.like]: `%${query.title}%`,
-        },
-      };
+      const title = String(query.title).trim();
+      if (title) {
+        condition.where.title = {
+          [Op.like]: `%${title}%`,
+        };
+      }
     }
 
     // 查询数据

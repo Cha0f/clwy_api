@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { User } = require('../../models');
 const { Op } = require('sequelize');
-// 引入封装工具
 const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
+const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询用户列表
@@ -14,58 +14,33 @@ router.get('/', async function (req, res) {
   try {
     // 定义查询参数
     const query = req.query;
-    // 获取current_page和page_seize
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    // 计算offset
-    const offset = (currentPage - 1) * pageSize;
-    // 定义查询条件
+    const { currentPage, pageSize, offset } = getPagination(query);
+
     const condition = {
       order: [['id', 'DESC']],
       attributes: { exclude: ['password'] },
-      // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
+      where: {},
     };
 
-    // 初始化筛选条件
-    condition.where = {};
-
-    // 如果有查询参数，就添加到where条件中
     if (query.email) {
-      condition.where = {
-        ...condition.where,
-        email: {
-          [Op.eq]: query.email,
-        },
-      };
+      condition.where.email = { [Op.eq]: query.email };
     }
 
     if (query.username) {
-      condition.where = {
-        ...condition.where,
-        username: {
-          [Op.eq]: query.username,
-        },
-      };
+      condition.where.username = { [Op.eq]: query.username };
     }
 
     if (query.nickname) {
-      condition.where = {
-        ...condition.where,
-        nickname: {
-          [Op.like]: `%${query.nickname}%`,
-        },
-      };
+      const nickname = String(query.nickname).trim();
+      if (nickname) {
+        condition.where.nickname = { [Op.like]: `%${nickname}%` };
+      }
     }
 
     if (query.role) {
-      condition.where = {
-        ...condition.where,
-        role: {
-          [Op.eq]: query.role,
-        },
-      };
+      condition.where.role = { [Op.eq]: query.role };
     }
 
     // 查询数据
