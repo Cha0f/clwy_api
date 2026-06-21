@@ -1,14 +1,4 @@
 /**
- * 自定义 404 错误类
- */
-class NotFondError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'NotFondError';
-  }
-}
-
-/**
  * 请求成功
  * @param res
  * @param message
@@ -38,6 +28,22 @@ function failure(res, error) {
     });
   }
 
+  if (error.name === 'BadRequestError') {
+    return res.status(400).json({
+      status: 400,
+      message: '请求参数错误。',
+      errors: [error.message],
+    });
+  }
+
+  if (error.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      status: 401,
+      message: '认证失败。',
+      errors: [error.message],
+    });
+  }
+
   if (error.name === 'NotFoundError') {
     return res.status(404).json({
       status: 404,
@@ -55,7 +61,6 @@ function failure(res, error) {
 
 // 导出
 module.exports = {
-  NotFondError,
   success,
   failure,
 };

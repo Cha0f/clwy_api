@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { sequelize, User } = require('../../models');
-const { Op } = require('sequelize');
-const { NotFoundError, success, failure } = require('../../utils/response');
+// 引入封装工具
+const { success, failure } = require('../../utils/responses');
 
 /**
  * 统计用户性别

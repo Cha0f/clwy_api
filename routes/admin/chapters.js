@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { Chapter, Course } = require('../../models');
 const { Op } = require('sequelize');
-// 引入错误类
-const { NotFondError, success, failure } = require('../../utils/response');
+// 引入封装工具
+const { success, failure } = require('../../utils/responses');
 
 /**
  * 查询章节列表
@@ -13,7 +13,9 @@ router.get('/', async function (req, res) {
   try {
     // 定义查询参数
     const query = req.query;
-    if (!query.courseId) throw new Error('获取章节列表失败，课程ID不能为空。');
+    if (!query.courseId) {
+      throw new Error('获取章节列表失败，课程ID不能为空。');
+    }
     // 获取current_page和page_seize
     const currentPage = Math.abs(Number(query.currentPage)) || 1;
     const pageSize = Math.abs(Number(query.pageSize)) || 10;

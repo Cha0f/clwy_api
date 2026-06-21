@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Setting } = require('../../models');
-// 引入错误类
-const { NotFondError, success, failure } = require('../../utils/response');
+// 引入封装工具
+const { success, failure } = require('../../utils/responses');
 
 /**
  * 查询系统设置详情
