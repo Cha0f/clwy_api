@@ -22,6 +22,7 @@ router.get('/', async function (req, res) {
     // 定义查询条件
     const condition = {
       order: [['id', 'DESC']],
+      attributes: { exclude: ['password'] },
       // 在查询条件中添加offset和pageSize
       limit: pageSize,
       offset,
@@ -93,7 +94,7 @@ router.get('/', async function (req, res) {
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const user = await getUsers(req);
+    const user = await getUser(req);
     // 返回查询结果
     success(res, '查询用户成功。', { user });
   } catch (err) {
@@ -125,7 +126,7 @@ router.post('/', async function (req, res) {
 router.delete('/:id', async function (req, res) {
   try {
     // 查询用户
-    const user = await getUsers(req);
+    const user = await getUser(req);
     // 删除用户
     await user.destroy();
     // 返回删除用户的结果
@@ -144,7 +145,7 @@ router.put('/:id', async function (req, res) {
     // 白名单过滤
     const body = filterBody(req);
     // 查询用户
-    const user = await getUsers(req);
+    const user = await getUser(req);
     // 更新用户
     await user.update(body);
     // 返回用户更新的结果
@@ -176,16 +177,18 @@ function filterBody(req) {
 /**
  * 公共方法: 查询当前用户
  */
-async function getUsers(req) {
+async function getUser(req) {
   // 获取用户id
   const { id } = req.params;
   // 查询当前用户
-  const users = await User.findByPk(id);
+  const user = await User.findByPk(id, {
+    attributes: { exclude: ['password'] },
+  });
   // 如果没有找到
-  if (!users) {
+  if (!user) {
     throw new NotFoundError(`ID: ${id}的用户没有找到。`);
   }
-  return users;
+  return user;
 }
 
 module.exports = router;

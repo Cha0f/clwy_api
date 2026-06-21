@@ -66,7 +66,7 @@ router.get('/', async function (req, res) {
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const article = await getArticles(req);
+    const article = await getArticle(req);
     // 返回查询结果
     success(res, '查询文章成功。', { article });
   } catch (err) {
@@ -98,26 +98,7 @@ router.post('/', async function (req, res) {
 router.delete('/:id', async function (req, res) {
   try {
     // 查询文章
-    const article = await getArticles(req);
-    // 删除文章
-    await article.destroy();
-    // 返回删除文章的结果
-    success(res, '文章删除成功。');
-  } catch (err) {
-    failure(res, err);
-  }
-});
-
-/**
- * 更新文章
- * PUT /admin/articles/:id
- */
-router.put('/:id', async function (req, res) {
-  try {
-    // 白名单过滤
-    const body = filterBody(req);
-    // 查询文章
-    const article = await getArticles(req);
+    const article = await getArticle(req);
     // 更新文章
     await article.update(body);
     // 返回文章更新的结果
@@ -142,16 +123,16 @@ function filterBody(req) {
 /**
  * 公共方法: 查询当前文章
  */
-async function getArticles(req) {
+async function getArticle(req) {
   // 获取文章id
   const { id } = req.params;
   // 查询当前文章
-  const articles = await Article.findByPk(id);
+  const article = await Article.findByPk(id);
   // 如果没有找到
-  if (!articles) {
+  if (!article) {
     throw new NotFoundError(`ID: ${id}的文章没有找到。`);
   }
-  return articles;
+  return article;
 }
 
 module.exports = router;

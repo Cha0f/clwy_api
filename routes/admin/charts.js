@@ -32,7 +32,7 @@ router.get('/gender', async (req, res) => {
 router.get('/user', async (req, res) => {
   try {
     const [result] = await sequelize.query(
-      "SELECT DATE_FORMAT(`createdAt`, '%Y-%m') AS `month`, COUNT(*) AS `value` FROM `Users` GROUP BY `month` ORDER BY `month` ASC",
+      `SELECT DATE_FORMAT(\`createdAt\`, '%Y-%m') AS \`month\`, COUNT(*) AS \`value\` FROM \`${User.getTableName()}\` GROUP BY \`month\` ORDER BY \`month\` ASC`,
     );
     const data = {
       months: [],

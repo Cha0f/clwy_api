@@ -77,7 +77,7 @@ router.get('/', async function (req, res) {
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const chapter = await getChapters(req);
+    const chapter = await getChapter(req);
     // 返回查询结果
     success(res, '查询章节成功。', { chapter });
   } catch (err) {
@@ -109,7 +109,7 @@ router.post('/', async function (req, res) {
 router.delete('/:id', async function (req, res) {
   try {
     // 查询章节
-    const chapter = await getChapters(req);
+    const chapter = await getChapter(req);
     // 删除章节
     await chapter.destroy();
     // 返回删除章节的结果
@@ -128,7 +128,7 @@ router.put('/:id', async function (req, res) {
     // 白名单过滤
     const body = filterBody(req);
     // 查询章节
-    const chapter = await getChapters(req);
+    const chapter = await getChapter(req);
     // 更新章节
     await chapter.update(body);
     // 返回章节更新的结果
@@ -167,18 +167,18 @@ function getCondition() {
 /**
  * 公共方法: 查询当前章节
  */
-async function getChapters(req) {
+async function getChapter(req) {
   // 获取章节id
   const { id } = req.params;
   // 定义查询条件
   const condition = getCondition();
   // 查询当前章节
-  const chapters = await Chapter.findByPk(id, condition);
+  const chapter = await Chapter.findByPk(id, condition);
   // 如果没有找到
-  if (!chapters) {
+  if (!chapter) {
     throw new NotFoundError(`ID: ${id}的章节没有找到。`);
   }
-  return chapters;
+  return chapter;
 }
 
 module.exports = router;

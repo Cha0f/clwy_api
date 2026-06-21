@@ -104,7 +104,7 @@ router.get('/', async function (req, res) {
 router.get('/:id', async (req, res) => {
   try {
     // 查询数据
-    const course = await getCourses(req);
+    const course = await getCourse(req);
     // 返回查询结果
     success(res, '查询课程成功。', { course });
   } catch (err) {
@@ -136,7 +136,7 @@ router.post('/', async function (req, res) {
 router.delete('/:id', async function (req, res) {
   try {
     // 查询课程
-    const course = await getCourses(req);
+    const course = await getCourse(req);
     // 查询课程是否有章节
     const count = await Chapter.count({ where: { courseId: req.params.id } });
     if (count > 0) {
@@ -160,7 +160,7 @@ router.put('/:id', async function (req, res) {
     // 白名单过滤
     const body = filterBody(req);
     // 查询课程
-    const course = await getCourses(req);
+    const course = await getCourse(req);
     // 更新课程
     await course.update(body);
     // 返回课程更新的结果
@@ -204,17 +204,17 @@ function getCondition() {
 /**
  * 公共方法: 查询当前课程
  */
-async function getCourses(req) {
+async function getCourse(req) {
   // 获取课程id
   const { id } = req.params;
   const condition = getCondition();
   // 查询当前课程
-  const courses = await Course.findByPk(id, condition);
+  const course = await Course.findByPk(id, condition);
   // 如果没有找到
-  if (!courses) {
+  if (!course) {
     throw new NotFoundError(`ID: ${id}的课程没有找到。`);
   }
-  return courses;
+  return course;
 }
 
 module.exports = router;
