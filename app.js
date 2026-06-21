@@ -6,6 +6,7 @@ const logger = require('morgan');
 const adminAuth = require('./middlewares/admin-auth');
 const userAuth = require('./middlewares/user-auth');
 require('dotenv').config();
+const cors = require('cors');
 
 // 前台路由文件
 const indexRouter = require('./routes/index');
@@ -30,6 +31,8 @@ const adminAuthRouter = require('./routes/admin/auth');
 
 const app = express();
 
+// CORS 跨域配置
+app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
