@@ -56,6 +56,11 @@ module.exports = (sequelize, DataTypes) => {
       password: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: {
+          notNull: { msg: '密码必须填写。' },
+          notEmpty: { msg: '密码不能为空。' },
+          len: { args: [6, 45], msg: '密码长度必须是6 ~ 45之间。' },
+        },
         set(value) {
           if (!value) {
             throw new Error('密码必须填写。');
@@ -63,8 +68,8 @@ module.exports = (sequelize, DataTypes) => {
           if (value.trim() === '') {
             throw new Error('密码不能为空');
           }
-          if (value.length <= 1) {
-            throw new Error('密码长度必须是6 ～ 45之间。');
+          if (value.length < 6 || value.length > 45) {
+            throw new Error('密码长度必须是6 ~ 45之间。');
           }
           // 对密码进行加密
           this.setDataValue('password', bcrypt.hashSync(value, 10));
@@ -102,7 +107,8 @@ module.exports = (sequelize, DataTypes) => {
       modelName: 'User',
       indexes: [
         { unique: true, fields: ['email'] },
-        { unique: true, fields: ['password'] },
+        { unique: true, fields: ['username'] },
+        { fields: ['role'] },
       ],
     },
   );
