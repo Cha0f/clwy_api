@@ -3,6 +3,7 @@ const router = express.Router();
 const { Article } = require('../../models');
 const { Op } = require('sequelize');
 // 引入封装工具
+const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
 
 /**
@@ -144,7 +145,7 @@ async function getArticles(req) {
   const articles = await Article.findByPk(id);
   // 如果没有找到
   if (!articles) {
-    throw new NotFondError(`ID: ${id}的文章没有找到。`);
+    throw new NotFoundError(`ID: ${id}的文章没有找到。`);
   }
   return articles;
 }

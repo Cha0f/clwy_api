@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Chapter, Course } = require('../../models');
+const { NotFoundError } = require('../../utils/errors');
 const { Op } = require('sequelize');
 // 引入封装工具
 const { success, failure } = require('../../utils/responses');
@@ -174,7 +175,7 @@ async function getChapters(req) {
   const chapters = await Chapter.findByPk(id, condition);
   // 如果没有找到
   if (!chapters) {
-    throw new NotFondError(`ID: ${id}的章节没有找到。`);
+    throw new NotFoundError(`ID: ${id}的章节没有找到。`);
   }
   return chapters;
 }

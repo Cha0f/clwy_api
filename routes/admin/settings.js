@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Setting } = require('../../models');
 // 引入封装工具
+const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
 
 /**
@@ -59,7 +60,7 @@ async function getSettings(req) {
   const settings = await Setting.findOne();
   // 如果没有找到
   if (!settings) {
-    throw new NotFondError(`初始系统设置没有找到，请运行种子文件。`);
+    throw new NotFoundError(`初始系统设置没有找到，请运行种子文件。`);
   }
   return settings;
 }

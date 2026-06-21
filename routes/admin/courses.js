@@ -3,6 +3,7 @@ const router = express.Router();
 const { Course, Category, User, Chapter } = require('../../models');
 const { Op } = require('sequelize');
 // 引入封装工具
+const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
 
 /**
@@ -203,7 +204,7 @@ async function getCourses(req) {
   const courses = await Course.findByPk(id, condition);
   // 如果没有找到
   if (!courses) {
-    throw new NotFondError(`ID: ${id}的课程没有找到。`);
+    throw new NotFoundError(`ID: ${id}的课程没有找到。`);
   }
   return courses;
 }

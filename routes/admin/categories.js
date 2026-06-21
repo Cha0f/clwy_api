@@ -3,6 +3,7 @@ const router = express.Router();
 const { Category, Course } = require('../../models');
 const { Op } = require('sequelize');
 // 引入封装工具
+const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
 
 /**
@@ -153,7 +154,7 @@ async function getCategory(req) {
   const categories = await Category.findByPk(id);
   // 如果没有找到
   if (!categories) {
-    throw new NotFondError(`ID: ${id}的分类没有找到。`);
+    throw new NotFoundError(`ID: ${id}的分类没有找到。`);
   }
   return categories;
 }
