@@ -99,6 +99,25 @@ router.delete('/:id', async function (req, res) {
   try {
     // 查询文章
     const article = await getArticle(req);
+    // 删除文章
+    await article.destroy();
+    // 返回删除文章的结果
+    success(res, '文章删除成功。');
+  } catch (err) {
+    failure(res, err);
+  }
+});
+
+/**
+ * 更新文章
+ * PUT /admin/articles/:id
+ */
+router.put('/:id', async function (req, res) {
+  try {
+    // 白名单过滤
+    const body = filterBody(req);
+    // 查询文章
+    const article = await getArticle(req);
     // 更新文章
     await article.update(body);
     // 返回文章更新的结果
