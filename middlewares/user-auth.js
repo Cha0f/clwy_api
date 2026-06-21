@@ -2,6 +2,18 @@ const jwt = require('jsonwebtoken');
 const { UnauthorizedError } = require('../utils/errors');
 const { failure } = require('../utils/responses');
 
+/**
+ * 通用用户 Bearer Token 鉴权中间件
+ *
+ * 仅验证 Token 合法性和 userId 有效性，不做角色判断。
+ * 适用于前台需登录的接口（/users/*、/likes/*）。
+ *
+ * 验证通过后：
+ *   - 将 userId（数字）挂载到 req.userId
+ *   - 调用 next() 进入后续路由
+ *
+ * 验证失败直接调用 failure() 返回 401。
+ */
 module.exports = async (req, res, next) => {
   try {
     // 从 Authorization 头中获取 Token（格式: Bearer <token>）
@@ -13,17 +25,16 @@ module.exports = async (req, res, next) => {
     if (!token) {
       throw new UnauthorizedError('Token格式错误。');
     }
-    // 验证token是否正确
+
+    // 验证 token 是否正确并解析 payload
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
-    // 从jwt中，解析出之前存入的userId
     const { userId } = decodedToken;
     if (!userId) {
       throw new UnauthorizedError('Token无效。');
     }
 
-    // 如果通过验证，将user对象挂载到req上，方便后续中间件或路由使用
+    // 将 userId 挂载到 req，后续路由可通过 req.userId 获取
     req.userId = userId;
-    // 一定要加 next() ，才能继续进入到后续中间件或者路由中
     next();
   } catch (error) {
     failure(res, error);

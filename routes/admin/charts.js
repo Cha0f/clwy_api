@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { sequelize, User } = require('../../models');
-// 引入封装工具
 const { success, failure } = require('../../utils/responses');
 
 /**
- * 统计用户性别
+ * 统计用户性别分布
+ *
+ * 分别统计男性（gender=1）、女性（gender=2）、未选择（gender=0）的用户数量。
+ *
  * GET /admin/charts/gender
  */
 router.get('/gender', async (req, res) => {
@@ -26,7 +28,11 @@ router.get('/gender', async (req, res) => {
 });
 
 /**
- * 统计每个月用户数量
+ * 统计每月用户注册数量
+ *
+ * 使用原生 SQL + DATE_FORMAT 按年月分组统计。
+ * 返回 months（月份数组）和 values（对应数量数组）。
+ *
  * GET /admin/charts/user
  */
 router.get('/user', async (req, res) => {

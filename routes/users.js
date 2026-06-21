@@ -7,6 +7,10 @@ const bcrypt = require('bcryptjs');
 
 /**
  * 查询当前登录用户详情
+ *
+ * 通过 userAuth 中间件设置的 req.userId 查询用户，
+ * 自动排除 password 字段。
+ *
  * GET /users/me
  */
 router.get('/me', async function (req, res) {
@@ -20,6 +24,10 @@ router.get('/me', async function (req, res) {
 
 /**
  * 更新用户信息
+ *
+ * 允许修改：头像、昵称、性别、公司、简介。
+ * 密码修改请使用 PUT /users/account。
+ *
  * PUT /users/info
  */
 router.put('/info', async function (req, res) {
@@ -42,6 +50,11 @@ router.put('/info', async function (req, res) {
 
 /**
  * 更新账户信息
+ *
+ * 可修改：邮箱、用户名、密码。
+ * 必须提供 currentPassword 验证身份，password 和 passwordConfirmation 需一致。
+ * 查询时传 showPassword = true 以获取加密密码用于比对。
+ *
  * PUT /users/account
  */
 router.put('/account', async function (req, res) {
@@ -62,7 +75,7 @@ router.put('/account', async function (req, res) {
       throw new BadRequestError('两次输入的密码不一致。');
     }
 
-    // 加上true参数，可以查询到加密后的密码
+    // 获取用户时包含密码字段，用于比对
     const user = await getUser(req, true);
 
     // 验证当前密码是否正确
@@ -72,7 +85,7 @@ router.put('/account', async function (req, res) {
     }
 
     await user.update(body);
-    // 删除密码
+    // 更新后删除密码再返回（不泄露哈希值）
     delete user.dataValues.password;
     success(res, '更新账户成功。', { user });
   } catch (err) {
@@ -82,9 +95,10 @@ router.put('/account', async function (req, res) {
 
 /**
  * 公共方法：查询当前用户
- * @param req
- * @param showPassword
- * @reuturn {Promise<Model<any,TModelAttributes>>}
+ *
+ * @param {object} req - Express 请求对象，需包含 req.userId
+ * @param {boolean} showPassword - 是否返回 password 字段（默认 false）
+ * @returns {Promise<import('sequelize').Model>}
  */
 async function getUser(req, showPassword = false) {
   const id = req.userId;

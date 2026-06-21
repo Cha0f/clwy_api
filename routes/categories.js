@@ -5,6 +5,9 @@ const { success, failure } = require('../utils/responses');
 
 /**
  * 查询分类列表
+ *
+ * 按 rank（排序权重）升序、id 降序返回全部分类。
+ *
  * GET /categories
  */
 router.get('/', async (req, res) => {

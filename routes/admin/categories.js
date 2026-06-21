@@ -8,7 +8,10 @@ const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询分类列表
- * GET /admin/categories
+ *
+ * 支持按名称（name）模糊搜索，按 rank 权重升序、id 升序排列。
+ *
+ * GET /admin/categories?name=&currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
@@ -25,6 +28,7 @@ router.get('/', async function (req, res) {
       where: {},
     };
 
+    // name 模糊搜索（输入净化）
     if (query.name) {
       const name = String(query.name).trim();
       if (name) {
@@ -34,12 +38,7 @@ router.get('/', async function (req, res) {
       }
     }
 
-    // 查询数据
-    // 将findAll方法改为findAndCountAll方法
-    // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
-    // count 是查询到的数据的总数， rows 中才是查询到的数据
     const { count, rows } = await Category.findAndCountAll(condition);
-    // 返回查询结果
     success(res, '查询分类列表成功。', {
       categories: rows,
       pagination: {
@@ -55,13 +54,12 @@ router.get('/', async function (req, res) {
 
 /**
  * 查询分类详情
+ *
  * GET /admin/categories/:id
  */
 router.get('/:id', async (req, res) => {
   try {
-    // 查询数据
     const category = await getCategory(req);
-    // 返回查询结果
     success(res, '查询分类成功。', { category });
   } catch (err) {
     failure(res, err);
@@ -70,15 +68,13 @@ router.get('/:id', async (req, res) => {
 
 /**
  * 创建分类
+ *
  * POST /admin/categories
  */
 router.post('/', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 创建分类
     const category = await Category.create(body);
-    // 返回创建分类的结果
     success(res, '创建分类成功。', { category }, 201);
   } catch (err) {
     failure(res, err);
@@ -87,21 +83,22 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除分类
+ *
+ * 删除前检查是否有课程关联（有则禁止删除，防止数据不一致）。
+ *
  * DELETE /admin/categories/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询分类
     const category = await getCategory(req);
-    // 查询对应课程数量
+
+    // 检查该分类下是否有课程
     const count = await Course.count({ where: { categoryId: req.params.id } });
-    // 判断数量
     if (count > 0) {
       throw new BadRequestError('当前分类有课程，无法删除。');
     }
-    // 删除分类
+
     await category.destroy();
-    // 返回删除分类的结果
     success(res, '分类删除成功。');
   } catch (err) {
     failure(res, err);
@@ -110,17 +107,14 @@ router.delete('/:id', async function (req, res) {
 
 /**
  * 更新分类
+ *
  * PUT /admin/categories/:id
  */
 router.put('/:id', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 查询分类
     const category = await getCategory(req);
-    // 更新分类
     await category.update(body);
-    // 返回分类更新的结果
     success(res, '分类更新成功', { category });
   } catch (err) {
     failure(res, err);
@@ -128,9 +122,10 @@ router.put('/:id', async function (req, res) {
 });
 
 /**
- * 公共方法: 白名单过滤
- * @param req
- * @return {{name, rank: *}}
+ * 白名单过滤：仅允许 name 和 rank 字段通过
+ *
+ * @param {object} req
+ * @returns {{name: string, rank: number}}
  */
 function filterBody(req) {
   return {
@@ -140,14 +135,14 @@ function filterBody(req) {
 }
 
 /**
- * 公共方法: 查询当前分类
+ * 查询当前分类
+ *
+ * @param {object} req
+ * @returns {Promise<import('sequelize').Model>}
  */
 async function getCategory(req) {
-  // 获取分类id
   const { id } = req.params;
-  // 查询当前分类
   const categories = await Category.findByPk(id);
-  // 如果没有找到
   if (!categories) {
     throw new NotFoundError(`ID: ${id}的分类没有找到。`);
   }

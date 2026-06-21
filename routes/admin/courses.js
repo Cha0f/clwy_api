@@ -8,11 +8,13 @@ const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询课程列表
- * GET /admin/courses
+ *
+ * 支持多条件筛选：categoryId、userId、name（模糊）、recommended、introductory。
+ *
+ * GET /admin/courses?categoryId=&userId=&name=&recommended=&introductory=&currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
-    // 定义查询参数
     const query = req.query;
     const { currentPage, pageSize, offset } = getPagination(query);
 
@@ -24,14 +26,17 @@ router.get('/', async function (req, res) {
       where: {},
     };
 
+    // 按分类筛选
     if (query.categoryId) {
       condition.where.categoryId = { [Op.eq]: query.categoryId };
     }
 
+    // 按讲师筛选
     if (query.userId) {
       condition.where.userId = { [Op.eq]: query.userId };
     }
 
+    // 按名称模糊搜索（输入净化）
     if (query.name) {
       const name = String(query.name).trim();
       if (name) {
@@ -39,20 +44,17 @@ router.get('/', async function (req, res) {
       }
     }
 
+    // 是否推荐（URL 参数为字符串，需转布尔值）
     if (query.recommended) {
       condition.where.recommended = { [Op.eq]: query.recommended === 'true' };
     }
 
+    // 是否入门课程
     if (query.introductory) {
       condition.where.introductory = { [Op.eq]: query.introductory === 'true' };
     }
 
-    // 查询数据
-    // 将findAll方法改为findAndCountAll方法
-    // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
-    // count 是查询到的数据的总数， rows 中才是查询到的数据
     const { count, rows } = await Course.findAndCountAll(condition);
-    // 返回查询结果
     success(res, '查询课程列表成功。', {
       courses: rows,
       pagination: {
@@ -68,13 +70,14 @@ router.get('/', async function (req, res) {
 
 /**
  * 查询课程详情
+ *
+ * 附带关联的分类和用户信息。
+ *
  * GET /admin/courses/:id
  */
 router.get('/:id', async (req, res) => {
   try {
-    // 查询数据
     const course = await getCourse(req);
-    // 返回查询结果
     success(res, '查询课程成功。', { course });
   } catch (err) {
     failure(res, err);
@@ -83,15 +86,13 @@ router.get('/:id', async (req, res) => {
 
 /**
  * 创建课程
+ *
  * POST /admin/courses
  */
 router.post('/', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 创建课程
     const course = await Course.create(body);
-    // 返回创建课程的结果
     success(res, '创建课程成功。', { course }, 201);
   } catch (err) {
     failure(res, err);
@@ -100,20 +101,22 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除课程
+ *
+ * 删除前检查是否有章节关联（有则禁止删除）。
+ *
  * DELETE /admin/courses/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询课程
     const course = await getCourse(req);
-    // 查询课程是否有章节
+
+    // 检查该课程下是否有章节
     const count = await Chapter.count({ where: { courseId: req.params.id } });
     if (count > 0) {
       throw new BadRequestError('当前课程有章节，无法删除。');
     }
-    // 删除课程
+
     await course.destroy();
-    // 返回删除课程的结果
     success(res, '课程删除成功。');
   } catch (err) {
     failure(res, err);
@@ -122,17 +125,14 @@ router.delete('/:id', async function (req, res) {
 
 /**
  * 更新课程
+ *
  * PUT /admin/courses/:id
  */
 router.put('/:id', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 查询课程
     const course = await getCourse(req);
-    // 更新课程
     await course.update(body);
-    // 返回课程更新的结果
     success(res, '课程更新成功', { course });
   } catch (err) {
     failure(res, err);
@@ -140,9 +140,10 @@ router.put('/:id', async function (req, res) {
 });
 
 /**
- * 公共方法: 白名单过滤
- * @param req
- * @returns {{image: *, name, introductory: (boolean|*), userId: (number|*), categoryId: (number|*), content, recommended: (boolean|*)}}
+ * 白名单过滤：允许课程相关字段通过
+ *
+ * @param {object} req
+ * @returns {{categoryId: number, userId: number, name: string, image: string, recommended: boolean, introductory: boolean, content: string}}
  */
 function filterBody(req) {
   return {
@@ -157,8 +158,9 @@ function filterBody(req) {
 }
 
 /**
- * 公共方法：关联分类，用户数据
- * @returns {{include: [{as: string,model,attributes: string[]}],attributes: {exclude: string[]}}}
+ * 课程列表关联配置：关联分类和用户（讲师）
+ *
+ * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
  */
 function getCondition() {
   return {
@@ -171,15 +173,15 @@ function getCondition() {
 }
 
 /**
- * 公共方法: 查询当前课程
+ * 查询当前课程（含关联分类和用户）
+ *
+ * @param {object} req
+ * @returns {Promise<import('sequelize').Model>}
  */
 async function getCourse(req) {
-  // 获取课程id
   const { id } = req.params;
   const condition = getCondition();
-  // 查询当前课程
   const course = await Course.findByPk(id, condition);
-  // 如果没有找到
   if (!course) {
     throw new NotFoundError(`ID: ${id}的课程没有找到。`);
   }

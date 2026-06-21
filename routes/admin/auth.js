@@ -9,7 +9,10 @@ const jwt = require('jsonwebtoken');
 const { rateLimit } = require('express-rate-limit');
 
 /**
- * 登录限速：同一 IP 每 15 分钟最多 10 次尝试
+ * 管理员登录限流中间件
+ *
+ * 同一 IP 每 15 分钟最多 10 次登录尝试。
+ * 防止暴力破解管理员账号。
  */
 const signInLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -24,6 +27,10 @@ const signInLimiter = rateLimit({
 
 /**
  * 管理员登录
+ *
+ * 通过邮箱或用户名查找用户，验证密码后检查 role === 100。
+ * 全部验证通过后签发 JWT Token（存入 userId），过期时间由环境变量控制。
+ *
  * POST /admin/auth/sign_in
  */
 router.post('/sign_in', signInLimiter, async (req, res) => {
@@ -42,24 +49,24 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
       },
     };
 
-    // 通过email或username，查询用户是否存在
+    // 通过 email 或 username 查找用户
     const user = await User.findOne(condition);
     if (!user) {
       throw new NotFoundError('用户不存在，我无法登陆。');
     }
 
-    // 验证密码
+    // bcrypt 比对密码
     const isPasswordValid = bcrypt.compareSync(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedError('密码错误。');
     }
 
-    // 验证是否是管理员
+    // 必须是管理员角色才能登录后台
     if (user.role !== 100) {
       throw new UnauthorizedError('您没有权限登陆管理员后台。');
     }
 
-    // 生成身份验证令牌
+    // 签发 JWT
     const token = jwt.sign(
       {
         userId: user.id,

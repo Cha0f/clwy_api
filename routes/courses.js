@@ -7,7 +7,11 @@ const { getPagination } = require('../utils/pagination');
 
 /**
  * 查询课程列表
- * GET /courses
+ *
+ * 必填参数 categoryId，按 id 降序排列。
+ * 可选分页参数 currentPage / pageSize。
+ *
+ * GET /courses?categoryId=&page=&pageSize=
  */
 router.get('/', async (req, res) => {
   try {
@@ -41,6 +45,9 @@ router.get('/', async (req, res) => {
 
 /**
  * 查询课程详情
+ *
+ * 附带关联的分类、章节列表和讲师信息。
+ *
  * GET /courses/:id
  */
 router.get('/:id', async (req, res) => {

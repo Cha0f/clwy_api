@@ -9,6 +9,10 @@ const { Op } = require('sequelize');
 
 /**
  * 用户注册
+ *
+ * 创建普通用户（role = 0），密码在 User Model 的 setter 中自动加密。
+ * 注册响应会排除 password 字段（delete user.dataValues.password）。
+ *
  * POST /auth/sign_up
  */
 router.post('/sign_up', async (req, res) => {
@@ -31,7 +35,13 @@ router.post('/sign_up', async (req, res) => {
 });
 
 /**
- * 用户登陆
+ * 用户登录
+ *
+ * 支持邮箱或用户名登录（Op.or 查询）。
+ * 验证密码需通过 bcrypt.compareSync。
+ * 登录成功返回 JWT Token，过期时间由 JWT_EXPIRES_IN 控制（默认 7d）。
+ * 限流由 app.js 中挂载的 rate-limit 中间件保护（15 分钟最多 20 次）。
+ *
  * POST /auth/sign_in
  */
 router.post('/sign_in', async (req, res) => {
@@ -51,19 +61,19 @@ router.post('/sign_in', async (req, res) => {
       },
     };
 
-    // 通过email或username，查询用户是否存在
+    // 通过 email 或 username 查询用户是否存在
     const user = await User.findOne(condition);
     if (!user) {
       throw new NotFoundError('用户不存在，无法登陆。');
     }
 
-    // 验证密码
+    // 验证密码（与数据库中 bcrypt 哈希比对）
     const isPasswordValid = bcrypt.compareSync(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedError('密码错误。');
     }
 
-    // 生成令牌
+    // 生成 JWT，payload 中存入 userId
     const token = jwt.sign(
       {
         userId: user.id,

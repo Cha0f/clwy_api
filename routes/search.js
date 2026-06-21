@@ -7,7 +7,12 @@ const { getPagination } = require('../utils/pagination');
 
 /**
  * 搜索课程
- * GET /search
+ *
+ * 根据课程名称进行模糊查询（LIKE），支持分页。
+ * 搜索关键词经 String/.trim 净化后使用，防止类型绕过。
+ * 未传 name 参数时返回全部课程。
+ *
+ * GET /search?name=&currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
@@ -18,7 +23,7 @@ router.get('/', async function (req, res) {
       attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
       order: [['id', 'DESC']],
       limit: pageSize,
-      offset: offset,
+      offset,
     };
 
     if (query.name) {

@@ -1,8 +1,19 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
 const { UnauthorizedError } = require('../utils/errors');
 const { failure } = require('../utils/responses');
 
+/**
+ * 管理员 Bearer Token 鉴权中间件
+ *
+ * 从 Authorization 头中提取 Token，解析出 userId，
+ * 查询数据库确认用户存在且 role === 100（管理员）。
+ *
+ * 验证通过后：
+ *   - 将 user 对象挂载到 req.user
+ *   - 调用 next() 进入后续中间件或路由
+ *
+ * 验证失败直接调用 failure() 返回 401。
+ */
 module.exports = async (req, res, next) => {
   try {
     // 从 Authorization 头中获取 Token（格式: Bearer <token>）
@@ -14,25 +25,28 @@ module.exports = async (req, res, next) => {
     if (!token) {
       throw new UnauthorizedError('Token格式错误。');
     }
-    // 验证token是否正确
+
+    // 验证 token 是否正确并解析 payload
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
-    // 从jwt中，解析出之前存入的userId
     const { userId } = decodedToken;
     if (!userId) {
       throw new UnauthorizedError('Token无效。');
     }
-    // 查询当前登陆的用户
+
+    // 查询当前登录的用户
+    const { User } = require('../models');
     const user = await User.findByPk(userId);
     if (!user) {
       throw new UnauthorizedError('用户不存在。');
     }
+
     // 验证当前用户是否是管理员
     if (user.role !== 100) {
       throw new UnauthorizedError('您没有权限使用当前接口。');
     }
-    // 如果通过验证，将user对象挂载到req上，方便后续中间件或路由使用
+
+    // 验证通过，将 user 对象挂载到 req 上
     req.user = user;
-    // 一定要加 next() ，才能继续进入到后续中间件或者路由中
     next();
   } catch (error) {
     failure(res, error);

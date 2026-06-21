@@ -6,6 +6,10 @@ const { success, failure } = require('../utils/responses');
 
 /**
  * 查询系统信息
+ *
+ * 返回站点基础配置（名称、ICP 备案、版权信息）。
+ * Setting 为单例表，使用 findOne 取首行。
+ *
  * GET /settings
  */
 router.get('/', async function (req, res) {

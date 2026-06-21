@@ -2,14 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { Article } = require('../../models');
 const { Op } = require('sequelize');
-// 引入封装工具
 const { NotFoundError } = require('../../utils/errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询文章列表
- * GET /admin/articles
+ *
+ * 支持按标题（title）模糊搜索，按 id 降序排列。
+ *
+ * GET /admin/articles?title=&currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
@@ -23,6 +25,7 @@ router.get('/', async function (req, res) {
       where: {},
     };
 
+    // title 模糊搜索（输入净化防类型绕过）
     if (query.title) {
       const title = String(query.title).trim();
       if (title) {
@@ -32,12 +35,7 @@ router.get('/', async function (req, res) {
       }
     }
 
-    // 查询数据
-    // 将findAll方法改为findAndCountAll方法
-    // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
-    // count 是查询到的数据的总数， rows 中才是查询到的数据
     const { count, rows } = await Article.findAndCountAll(condition);
-    // 返回查询结果
     success(res, '查询文章列表成功。', {
       articles: rows,
       pagination: {
@@ -53,13 +51,12 @@ router.get('/', async function (req, res) {
 
 /**
  * 查询文章详情
+ *
  * GET /admin/articles/:id
  */
 router.get('/:id', async (req, res) => {
   try {
-    // 查询数据
     const article = await getArticle(req);
-    // 返回查询结果
     success(res, '查询文章成功。', { article });
   } catch (err) {
     failure(res, err);
@@ -68,15 +65,13 @@ router.get('/:id', async (req, res) => {
 
 /**
  * 创建文章
+ *
  * POST /admin/articles
  */
 router.post('/', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 创建文章
     const article = await Article.create(body);
-    // 返回创建文章的结果
     success(res, '创建文章成功。', { article }, 201);
   } catch (err) {
     failure(res, err);
@@ -85,15 +80,13 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除文章
+ *
  * DELETE /admin/articles/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询文章
     const article = await getArticle(req);
-    // 删除文章
     await article.destroy();
-    // 返回删除文章的结果
     success(res, '文章删除成功。');
   } catch (err) {
     failure(res, err);
@@ -102,17 +95,14 @@ router.delete('/:id', async function (req, res) {
 
 /**
  * 更新文章
+ *
  * PUT /admin/articles/:id
  */
 router.put('/:id', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 查询文章
     const article = await getArticle(req);
-    // 更新文章
     await article.update(body);
-    // 返回文章更新的结果
     success(res, '文章更新成功', { article });
   } catch (err) {
     failure(res, err);
@@ -120,9 +110,10 @@ router.put('/:id', async function (req, res) {
 });
 
 /**
- * 公共方法: 白名单过滤
- * @param req
- * @return {{title, content: (string|string|DocumentFragment|*)}}
+ * 白名单过滤：仅允许 title 和 content 字段通过
+ *
+ * @param {object} req - Express 请求对象
+ * @returns {{title: string, content: string}}
  */
 function filterBody(req) {
   return {
@@ -132,14 +123,16 @@ function filterBody(req) {
 }
 
 /**
- * 公共方法: 查询当前文章
+ * 查询当前文章
+ *
+ * 通用方法，被查询详情、更新、删除复用。
+ *
+ * @param {object} req - Express 请求对象，需包含 req.params.id
+ * @returns {Promise<import('sequelize').Model>}
  */
 async function getArticle(req) {
-  // 获取文章id
   const { id } = req.params;
-  // 查询当前文章
   const article = await Article.findByPk(id);
-  // 如果没有找到
   if (!article) {
     throw new NotFoundError(`ID: ${id}的文章没有找到。`);
   }

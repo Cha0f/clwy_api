@@ -8,11 +8,14 @@ const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询章节列表
- * GET /admin/chapters
+ *
+ * 必填参数 courseId，按 rank 权重升序、id 升序排列。
+ * 支持 title 模糊搜索。
+ *
+ * GET /admin/chapters?courseId=&title=&currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
-    // 定义查询参数
     const query = req.query;
     if (!query.courseId) {
       throw new BadRequestError('获取章节列表失败，课程ID不能为空。');
@@ -28,27 +31,19 @@ router.get('/', async function (req, res) {
       limit: pageSize,
       offset,
       where: {
-        courseId: {
-          [Op.eq]: query.courseId,
-        },
+        courseId: { [Op.eq]: query.courseId },
       },
     };
 
+    // title 模糊搜索（输入净化）
     if (query.title) {
       const title = String(query.title).trim();
       if (title) {
-        condition.where.title = {
-          [Op.like]: `%${title}%`,
-        };
+        condition.where.title = { [Op.like]: `%${title}%` };
       }
     }
 
-    // 查询数据
-    // 将findAll方法改为findAndCountAll方法
-    // findAndCountAll方法会返回一个对象，对象中有两个属性，一个是count，一个是rows
-    // count 是查询到的数据的总数， rows 中才是查询到的数据
     const { count, rows } = await Chapter.findAndCountAll(condition);
-    // 返回查询结果
     success(res, '查询章节列表成功。', {
       chapters: rows,
       pagination: {
@@ -64,13 +59,14 @@ router.get('/', async function (req, res) {
 
 /**
  * 查询章节详情
+ *
+ * 附带关联的课程数据。
+ *
  * GET /admin/chapters/:id
  */
 router.get('/:id', async (req, res) => {
   try {
-    // 查询数据
     const chapter = await getChapter(req);
-    // 返回查询结果
     success(res, '查询章节成功。', { chapter });
   } catch (err) {
     failure(res, err);
@@ -79,15 +75,13 @@ router.get('/:id', async (req, res) => {
 
 /**
  * 创建章节
+ *
  * POST /admin/chapters
  */
 router.post('/', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 创建章节
     const chapter = await Chapter.create(body);
-    // 返回创建章节的结果
     success(res, '创建章节成功。', { chapter }, 201);
   } catch (err) {
     failure(res, err);
@@ -96,15 +90,13 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除章节
+ *
  * DELETE /admin/chapters/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
-    // 查询章节
     const chapter = await getChapter(req);
-    // 删除章节
     await chapter.destroy();
-    // 返回删除章节的结果
     success(res, '章节删除成功。');
   } catch (err) {
     failure(res, err);
@@ -113,17 +105,14 @@ router.delete('/:id', async function (req, res) {
 
 /**
  * 更新章节
+ *
  * PUT /admin/chapters/:id
  */
 router.put('/:id', async function (req, res) {
   try {
-    // 白名单过滤
     const body = filterBody(req);
-    // 查询章节
     const chapter = await getChapter(req);
-    // 更新章节
     await chapter.update(body);
-    // 返回章节更新的结果
     success(res, '章节更新成功', { chapter });
   } catch (err) {
     failure(res, err);
@@ -131,9 +120,10 @@ router.put('/:id', async function (req, res) {
 });
 
 /**
- * 公共方法: 白名单过滤
- * @param req
- * @returns {{rank: (number|*), video: (string|boolean|MediaTrackConstraints|VideoConfiguration|*), title, courseId: (number|*), content}}
+ * 白名单过滤：允许 courseId、title、content、video、rank 字段通过
+ *
+ * @param {object} req
+ * @returns {{courseId: number, title: string, content: string, video: string, rank: number}}
  */
 function filterBody(req) {
   return {
@@ -146,7 +136,8 @@ function filterBody(req) {
 }
 
 /**
- * 公共方法: 关联课程数据
+ * 查询章节关联的课程数据
+ *
  * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
  */
 function getCondition() {
@@ -157,16 +148,15 @@ function getCondition() {
 }
 
 /**
- * 公共方法: 查询当前章节
+ * 查询当前章节（含关联课程）
+ *
+ * @param {object} req
+ * @returns {Promise<import('sequelize').Model>}
  */
 async function getChapter(req) {
-  // 获取章节id
   const { id } = req.params;
-  // 定义查询条件
   const condition = getCondition();
-  // 查询当前章节
   const chapter = await Chapter.findByPk(id, condition);
-  // 如果没有找到
   if (!chapter) {
     throw new NotFoundError(`ID: ${id}的章节没有找到。`);
   }

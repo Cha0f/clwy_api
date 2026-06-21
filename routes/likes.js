@@ -6,7 +6,12 @@ const { NotFoundError } = require('../utils/errors');
 const { getPagination } = require('../utils/pagination');
 
 /**
- * 点赞、取消赞
+ * 点赞 / 取消赞
+ *
+ * 幂等接口：检查该用户是否已点赞过该课程。
+ *   - 未点赞 → 新增 Like 记录，课程 likesCount + 1
+ *   - 已点赞 → 删除 Like 记录，课程 likesCount - 1
+ *
  * POST /likes
  */
 router.post('/', async function (req, res) {
@@ -14,24 +19,27 @@ router.post('/', async function (req, res) {
     const userId = req.userId;
     const { courseId } = req.body;
 
+    // 验证课程存在
     const course = await Course.findByPk(courseId);
     if (!course) {
       throw new NotFoundError('课程不存在。');
     }
-    // 检查课程之前是否已经点赞
+
+    // 查询是否已点赞
     const like = await Like.findOne({
       where: {
         courseId,
         userId,
       },
     });
-    // 如果没有点赞过，那就新增。并且课程的 likesCount + 1
+
     if (!like) {
+      // 未点赞 → 创建点赞记录，课程点赞数 + 1
       await Like.create({ courseId, userId });
       await course.increment('likesCount');
       success(res, '点赞成功。');
     } else {
-      // 如果点赞过了，那就删除。并且课程的 likesCount - 1
+      // 已点赞 → 删除点赞记录，课程点赞数 - 1
       await like.destroy();
       await course.decrement('likesCount');
       success(res, '取消赞成功。');
@@ -42,18 +50,22 @@ router.post('/', async function (req, res) {
 });
 
 /**
- * 查询用户点赞的课程
- * GET /likes
+ * 查询用户点赞的课程列表
+ *
+ * 通过 User 与 Course 的多对多关联（through: Like）查询，
+ * 分页返回当前用户点赞过的课程。
+ *
+ * GET /likes?currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
     const query = req.query;
     const { currentPage, pageSize, offset } = getPagination(query);
 
-    // 查询当前用户
+    // 查询当前用户（用于后续的关联查询）
     const user = await User.findByPk(req.userId);
 
-    // 查询当前用户点赞过的课程
+    // 通过多对多关联获取该用户点赞的课程
     const courses = await user.getLikeCourses({
       joinTableAttributes: [],
       attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
@@ -62,7 +74,7 @@ router.get('/', async function (req, res) {
       offset,
     });
 
-    // 查询当前用户点赞过的课程总数
+    // 获取点赞课程总数
     const count = await user.countLikeCourses();
 
     success(res, '查询用户点赞的课程成功。', {

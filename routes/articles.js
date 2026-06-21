@@ -7,7 +7,11 @@ const { getPagination } = require('../utils/pagination');
 
 /**
  * 查询文章列表
- * GET /articles
+ *
+ * 分页返回所有文章（排除 content 字段以减少传输量），
+ * 按 id 降序排列（最新优先）。
+ *
+ * GET /articles?currentPage=&pageSize=
  */
 router.get('/', async function (req, res) {
   try {
@@ -37,6 +41,9 @@ router.get('/', async function (req, res) {
 
 /**
  * 查询文章详情
+ *
+ * 返回完整文章内容（含 content 字段）。
+ *
  * GET /articles/:id
  */
 router.get('/:id', async function (req, res) {
