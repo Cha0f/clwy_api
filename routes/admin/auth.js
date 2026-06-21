@@ -6,15 +6,28 @@ const { BadRequestError, UnauthorizedError, NotFoundError } = require('../../uti
 const { success, failure } = require('../../utils/responses');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-// const crypto = require('crypto');
+const { rateLimit } = require('express-rate-limit');
+
+/**
+ * 登录限速：同一 IP 每 15 分钟最多 10 次尝试
+ */
+const signInLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    status: 429,
+    message: '请求过于频繁，请稍后再试。',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * 管理员登录
  * POST /admin/auth/sign_in
  */
-router.post('/sign_in', async (req, res) => {
+router.post('/sign_in', signInLimiter, async (req, res) => {
   try {
-    // console.log(crypto.randomBytes(32).toString('hex'));
     const { login, password } = req.body;
     if (!login) {
       throw new BadRequestError('邮箱/用户名必须填写。');

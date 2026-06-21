@@ -131,7 +131,7 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除课程
- * DELETE /admin/course/:id
+ * DELETE /admin/courses/:id
  */
 router.delete('/:id', async function (req, res) {
   try {

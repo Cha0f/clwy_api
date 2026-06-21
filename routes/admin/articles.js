@@ -93,7 +93,7 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除文章
- * DELETE /admin/article/:id
+ * DELETE /admin/articles/:id
  */
 router.delete('/:id', async function (req, res) {
   try {

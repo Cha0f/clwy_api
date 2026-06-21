@@ -38,4 +38,22 @@ app.use('/admin/chapters', adminAuth, adminChaptersRouter);
 app.use('/admin/charts', adminAuth, adminChartsRouter);
 app.use('/admin/auth', adminAuthRouter);
 
+// 全局 404 处理
+app.use((req, res) => {
+  res.status(404).json({
+    status: 404,
+    message: '接口不存在。',
+  });
+});
+
+// 全局错误处理
+app.use((err, req, res, next) => {
+  console.error('未捕获的错误:', err);
+  res.status(500).json({
+    status: 500,
+    message: '服务器错误。',
+    errors: process.env.NODE_ENV === 'development' ? [err.message] : [],
+  });
+});
+
 module.exports = app;

@@ -96,7 +96,7 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除分类
- * DELETE /admin/category/:id
+ * DELETE /admin/categories/:id
  */
 router.delete('/:id', async function (req, res) {
   try {

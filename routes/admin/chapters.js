@@ -104,7 +104,7 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除章节
- * DELETE /admin/chapter/:id
+ * DELETE /admin/chapters/:id
  */
 router.delete('/:id', async function (req, res) {
   try {

@@ -120,7 +120,7 @@ router.post('/', async function (req, res) {
 
 /**
  * 删除用户
- * DELETE /admin/user/:id
+ * DELETE /admin/users/:id
  */
 router.delete('/:id', async function (req, res) {
   try {

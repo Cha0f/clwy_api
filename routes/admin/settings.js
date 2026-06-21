@@ -29,7 +29,7 @@ router.put('/', async function (req, res) {
     // 白名单过滤
     const body = filterBody(req);
     // 查询系统设置
-    const setting = await getSettings(req);
+    const setting = await getSettings();
     // 更新系统设置
     await setting.update(body);
     // 返回系统设置更新的结果
@@ -55,7 +55,7 @@ function filterBody(req) {
 /**
  * 公共方法: 查询当前系统设置
  */
-async function getSettings(req) {
+async function getSettings() {
   // 查询系统设置
   const settings = await Setting.findOne();
   // 如果没有找到
