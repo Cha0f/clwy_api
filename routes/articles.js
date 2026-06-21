@@ -3,6 +3,7 @@ const router = express.Router();
 const { Article } = require('../models');
 const { success, failure } = require('../utils/responses');
 const { NotFoundError } = require('../utils/errors');
+const { getPagination } = require('../utils/pagination');
 
 /**
  * 查询文章列表
@@ -11,15 +12,13 @@ const { NotFoundError } = require('../utils/errors');
 router.get('/', async function (req, res) {
   try {
     const query = req.query;
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    const offset = (currentPage - 1) * pageSize;
+    const { currentPage, pageSize, offset } = getPagination(query);
 
     const condition = {
       attributes: { exclude: ['content'] },
       order: [['id', 'DESC']],
       limit: pageSize,
-      offset: offset,
+      offset,
     };
 
     const { count, rows } = await Article.findAndCountAll(condition);

@@ -69,7 +69,7 @@ router.post('/sign_in', async (req, res) => {
         userId: user.id,
       },
       process.env.SECRET_KEY,
-      { expiresIn: '1h' },
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
     );
 
     success(res, '登陆成功。', { token });

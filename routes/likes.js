@@ -3,6 +3,7 @@ const router = express.Router();
 const { Course, Like, User } = require('../models');
 const { success, failure } = require('../utils/responses');
 const { NotFoundError } = require('../utils/errors');
+const { getPagination } = require('../utils/pagination');
 
 /**
  * 点赞、取消赞
@@ -47,9 +48,7 @@ router.post('/', async function (req, res) {
 router.get('/', async function (req, res) {
   try {
     const query = req.query;
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    const offset = (currentPage - 1) * pageSize;
+    const { currentPage, pageSize, offset } = getPagination(query);
 
     // 查询当前用户
     const user = await User.findByPk(req.userId);
@@ -60,7 +59,7 @@ router.get('/', async function (req, res) {
       attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
       order: [['id', 'DESC']],
       limit: pageSize,
-      offset: offset,
+      offset,
     });
 
     // 查询当前用户点赞过的课程总数

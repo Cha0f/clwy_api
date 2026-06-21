@@ -3,6 +3,7 @@ const router = express.Router();
 const { Course } = require('../models');
 const { success, failure } = require('../utils/responses');
 const { Op } = require('sequelize');
+const { getPagination } = require('../utils/pagination');
 
 /**
  * 搜索课程
@@ -11,9 +12,7 @@ const { Op } = require('sequelize');
 router.get('/', async function (req, res) {
   try {
     const query = req.query;
-    const currentPage = Math.abs(Number(query.currentPage)) || 1;
-    const pageSize = Math.abs(Number(query.pageSize)) || 10;
-    const offset = (currentPage - 1) * pageSize;
+    const { currentPage, pageSize, offset } = getPagination(query);
 
     const condition = {
       attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
@@ -23,11 +22,14 @@ router.get('/', async function (req, res) {
     };
 
     if (query.name) {
-      condition.where = {
-        name: {
-          [Op.like]: `%${query.name}%`,
-        },
-      };
+      const name = String(query.name).trim();
+      if (name) {
+        condition.where = {
+          name: {
+            [Op.like]: `%${name}%`,
+          },
+        };
+      }
     }
 
     const { count, rows } = await Course.findAndCountAll(condition);

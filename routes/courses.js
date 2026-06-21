@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { Course, Category, Chapter, User } = require('../models');
 const { success, failure } = require('../utils/responses');
-const { NotFoundError } = require('../utils/errors');
+const { NotFoundError, BadRequestError } = require('../utils/errors');
+const { getPagination } = require('../utils/pagination');
 
 /**
  * 查询课程列表
@@ -11,12 +12,10 @@ const { NotFoundError } = require('../utils/errors');
 router.get('/', async (req, res) => {
   try {
     const query = req.query;
-    const currentPage = Math.abs(Number(query.page)) || 1;
-    const pageSize = Number(query.pageSize) || 10;
-    const offset = (currentPage - 1) * pageSize;
+    const { currentPage, pageSize, offset } = getPagination(query);
 
     if (!query.categoryId) {
-      throw new Error('获取课程列表失败，分类ID不能为空');
+      throw new BadRequestError('获取课程列表失败，分类ID不能为空');
     }
 
     const condition = {

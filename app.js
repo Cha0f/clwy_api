@@ -7,6 +7,7 @@ const adminAuth = require('./middlewares/admin-auth');
 const userAuth = require('./middlewares/user-auth');
 require('dotenv').config();
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 // 前台路由文件
 const indexRouter = require('./routes/index');
@@ -47,7 +48,13 @@ app.use('/chapters', chaptersRouter);
 app.use('/articles', articlesRouter);
 app.use('/settings', settingsRouter);
 app.use('/search', searchRouter);
-app.use('/auth', authRouter);
+// 登录接口添加频率限制（15分钟内最多20次）
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { status: 429, message: '请求过于频繁，请15分钟后再试。' },
+});
+app.use('/auth', authLimiter, authRouter);
 app.use('/users', userAuth, usersRouter);
 app.use('/likes', userAuth, likesRouter);
 // 后台路由配置
