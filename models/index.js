@@ -13,7 +13,9 @@ let sequelize;
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
+  // 允许通过环境变量 DB_PASSWORD 覆盖 config.json 中的密码
+  const password = process.env.DB_PASSWORD || config.password;
+  sequelize = new Sequelize(config.database, config.username, password, config);
 }
 
 fs.readdirSync(__dirname)

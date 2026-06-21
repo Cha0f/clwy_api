@@ -460,7 +460,8 @@ erDiagram
 | `SECRET_KEY` | 是 | — | JWT 签名密钥（32 字节 hex） |
 | `JWT_EXPIRES_IN` | 否 | `7d` | JWT Token 过期时间 |
 | `PORT` | 否 | `3000` | 服务器端口 |
-| `DATABASE_URL` | 否 | — | 数据库连接字符串（需修改 config.json） |
+| `DATABASE_URL` | 否 | — | 数据库连接 URL（需 config.json 开启 use_env_variable） |
+| `DB_PASSWORD` | 否 | config.json 中的值 | 数据库密码（优先级高于 config.json） |
 
 ## 脚本命令
 
@@ -471,10 +472,3 @@ erDiagram
 | `npm run lint:fix` | ESLint 自动修复 |
 | `npm run format` | Prettier 格式化 |
 | `npm run format:check` | Prettier 格式检查 |
-
-## 待改进项
-
-- **Admin 路由迁移** — 后台搜索参数尚未做输入净化，错误类型未统一为自定义 Error
-- **Admin 路由分页重构** — 后台路由仍使用内联分页计算，建议迁移至 `utils/pagination.js`
-- **config.json 硬编码密码** — 开发环境数据库密码硬编码在配置文件中，建议使用环境变量
-- **Setting 模型验证** — 缺少字段校验（name/icp/copyright），其他模型均已有完整校验
