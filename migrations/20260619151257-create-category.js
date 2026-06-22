@@ -27,6 +27,10 @@ module.exports = {
         type: Sequelize.DATE,
       },
     });
+    await queryInterface.addIndex('Categories', {
+      fields: ['name'],
+      unique: true,
+    });
   },
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Categories');

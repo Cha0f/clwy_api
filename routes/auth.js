@@ -61,16 +61,11 @@ router.post('/sign_in', async (req, res) => {
       },
     };
 
-    // 通过 email 或 username 查询用户是否存在
+    // 通过 email 或 username 查询用户
     const user = await User.findOne(condition);
-    if (!user) {
-      throw createError(404, '用户不存在，无法登陆。');
-    }
-
-    // 验证密码（与数据库中 bcrypt 哈希比对）
-    const isPasswordValid = bcrypt.compareSync(password, user.password);
-    if (!isPasswordValid) {
-      throw createError(401, '密码错误。');
+    if (!user || !bcrypt.compareSync(password, user?.password || '')) {
+      // 统一错误消息，避免账号枚举
+      throw createError(401, '邮箱/用户名或密码错误。');
     }
 
     // 生成 JWT，payload 中存入 userId

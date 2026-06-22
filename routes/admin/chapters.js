@@ -83,6 +83,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', async function (req, res) {
   try {
     const body = filterBody(req);
+
+    // 验证引用的课程存在
+    const course = await Course.findByPk(body.courseId);
+    if (!course) {
+      throw createError(400, '创建章节失败，课程不存在。');
+    }
+
     const chapter = await Chapter.sequelize.transaction(async (t) => {
       const ch = await Chapter.create(body, { transaction: t });
       await Course.increment('chaptersCount', {

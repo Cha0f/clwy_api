@@ -33,6 +33,15 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Setting',
+      // 单例约束：只允许一行记录，通过 beforeCreate 钩子防止第二行
+      hooks: {
+        beforeCreate: async () => {
+          const count = await sequelize.models.Setting.count();
+          if (count >= 1) {
+            throw new Error('系统设置已存在，请使用更新接口进行修改。');
+          }
+        },
+      },
     },
   );
   return Setting;

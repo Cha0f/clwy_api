@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { User } = require('../../models');
+const { User, Course } = require('../../models');
 const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
@@ -101,7 +101,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async function (req, res) {
   try {
-    const body = filterBody(req);
+    const body = filterBodyForCreate(req);
     const user = await User.create(body);
     success(res, '创建用户成功。', { user }, 201);
   } catch (err) {
@@ -135,6 +135,12 @@ router.delete('/:id', async function (req, res) {
       }
     }
 
+    // 保护 3：检查用户是否有关联课程（防止挂空引用）
+    const courseCount = await Course.count({ where: { userId: req.params.id } });
+    if (courseCount > 0) {
+      throw createError(409, '该用户还有关联的课程，无法删除。');
+    }
+
     await user.destroy();
     success(res, '用户删除成功。');
   } catch (err) {
@@ -149,7 +155,7 @@ router.delete('/:id', async function (req, res) {
  */
 router.put('/:id', async function (req, res) {
   try {
-    const body = filterBody(req);
+    const body = filterBodyForUpdate(req);
     const user = await getUser(req);
     await user.update(body);
     success(res, '用户更新成功', { user });
@@ -159,12 +165,9 @@ router.put('/:id', async function (req, res) {
 });
 
 /**
- * 白名单过滤：允许用户全部字段通过
- *
- * @param {object} req
- * @returns {{email: string, username: string, nickname: string, password: string, avatar: string, gender: number, company: string, introduce: string, role: number}}
+ * 创建用户的白名单过滤
  */
-function filterBody(req) {
+function filterBodyForCreate(req) {
   return {
     email: req.body.email,
     username: req.body.username,
@@ -176,6 +179,39 @@ function filterBody(req) {
     introduce: req.body.introduce,
     role: req.body.role,
   };
+}
+
+/**
+ * 更新用户的白名单过滤
+ *
+ * 更新时不接受 role 字段（防止越权提权）。
+ * 修改密码需在 body 中提供 currentPassword 验证当前管理员身份。
+ */
+function filterBodyForUpdate(req) {
+  const body = {
+    email: req.body.email,
+    username: req.body.username,
+    nickname: req.body.nickname,
+    avatar: req.body.avatar,
+    gender: req.body.gender,
+    company: req.body.company,
+    introduce: req.body.introduce,
+  };
+
+  // 修改密码需要验证当前管理员密码
+  if (req.body.password) {
+    if (!req.body.currentPassword) {
+      throw createError(400, '修改密码需提供当前密码。');
+    }
+    const bcrypt = require('bcryptjs');
+    const admin = req.user;
+    if (!bcrypt.compareSync(req.body.currentPassword, admin.password)) {
+      throw createError(403, '当前密码错误，不允许修改密码。');
+    }
+    body.password = req.body.password;
+  }
+
+  return body;
 }
 
 /**

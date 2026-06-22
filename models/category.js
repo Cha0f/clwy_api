@@ -32,6 +32,9 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Category',
+      indexes: [
+        { unique: true, fields: ['name'] },
+      ],
       hooks: {
         beforeValidate: async (instance) => {
           if (instance.changed('name')) {
