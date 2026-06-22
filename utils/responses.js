@@ -1,11 +1,20 @@
+/**
+ * 统一响应工具函数
+ *
+ * 提供标准的 API 响应格式：
+ *   - success(): 成功响应（200/201）
+ *   - failure(): 统一错误处理，根据错误类型映射 HTTP 状态码和用户友好消息
+ */
+
 const createError = require('http-errors');
 
 /**
  * 请求成功
- * @param res
- * @param message
- * @param data
- * @param code
+ *
+ * @param {object} res - Express 响应对象
+ * @param {string} message - 成功消息
+ * @param {object} [data={}] - 返回的数据对象
+ * @param {number} [code=200] - HTTP 状态码（创建成功用 201）
  */
 function success(res, message, data = {}, code = 200) {
   res.status(code).json({
@@ -16,40 +25,54 @@ function success(res, message, data = {}, code = 200) {
 }
 
 /**
- * 请求失败
- * @param res - Express 响应对象
- * @param error - 错误对象
+ * 请求失败 — 统一错误处理
+ *
+ * 根据 error 对象的类型/名称自动选择合适的 HTTP 状态码和错误消息，
+ * 确保客户端能正确解析错误详情。
+ *
+ * 支持的错误类型（优先级从上到下）：
+ *   - SequelizeValidationError     → 400（模型验证不通过）
+ *   - SequelizeUniqueConstraintError → 409（重复数据）
+ *   - SequelizeForeignKeyConstraintError → 409（外键约束）
+ *   - JsonWebTokenError            → 401（token 无效）
+ *   - TokenExpiredError            → 401（token 过期）
+ *   - http-errors 创建的错误      → 使用 error.status
+ *   - 其他未识别错误              → 500（服务器错误）
+ *
+ * @param {object} res - Express 响应对象
+ * @param {Error} error - 错误对象
  */
 function failure(res, error) {
-  // 根据错误类型设置响应状态码和消息
   let statusCode = 500;
   let errors = '服务器错误。';
 
   if (error.name === 'SequelizeValidationError') {
-    // Sequelize 模型验证错误
+    // 模型字段验证失败（如字段为空、长度超限、格式不匹配等）
     statusCode = 400;
     errors = error.errors.map((e) => e.message);
   } else if (error.name === 'SequelizeUniqueConstraintError') {
-    // 数据库唯一约束冲突（重复注册等）
+    // 唯一约束冲突（如重复的邮箱/用户名/分类名等）
     statusCode = 409;
     errors = [error.errors?.map((e) => e.message).join('；') || '数据已存在，请勿重复操作。'];
   } else if (error.name === 'SequelizeForeignKeyConstraintError') {
-    // 外键约束冲突（引用了不存在的关联数据）
+    // 外键约束冲突（如引用了不存在的关联记录）
     statusCode = 409;
     errors = ['操作失败，关联数据不存在。'];
   } else if (error.name === 'JsonWebTokenError') {
+    // JWT 格式错误或签名不匹配
     statusCode = 401;
     errors = ['您提交的 token 错误。'];
   } else if (error.name === 'TokenExpiredError') {
+    // JWT 已过期
     statusCode = 401;
     errors = ['您的 token 已过期。'];
   } else if (error instanceof createError.HttpError) {
-    // http-errors 库创建的错误
+    // 业务代码中用 http-errors throw 的自定义错误
     statusCode = error.status;
     errors = [error.message];
   }
 
-  // 开发环境下打印错误以便调试
+  // 开发模式下将详细错误打印到控制台（便于调试）
   if (process.env.NODE_ENV === 'development') {
     console.error('错误详情:', error);
   }
@@ -62,7 +85,10 @@ function failure(res, error) {
 }
 
 /**
- * 根据 HTTP 状态码获取默认消息
+ * 根据 HTTP 状态码返回默认提示消息
+ *
+ * @param {number} statusCode - HTTP 状态码
+ * @returns {string} 用户友好的默认消息
  */
 function getDefaultMessage(statusCode) {
   switch (statusCode) {
@@ -81,7 +107,6 @@ function getDefaultMessage(statusCode) {
   }
 }
 
-// 导出
 module.exports = {
   success,
   failure,

@@ -1,5 +1,12 @@
 'use strict';
 const { Model } = require('sequelize');
+
+/**
+ * 系统设置模型（单例）
+ *
+ * 整个系统只有一行记录，存储站点名称、ICP 备案号和版权信息。
+ * beforeCreate 钩子防止插入第二行数据。
+ */
 module.exports = (sequelize, DataTypes) => {
   class Setting extends Model {
   }
@@ -33,7 +40,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Setting',
-      // 单例约束：只允许一行记录，通过 beforeCreate 钩子防止第二行
+      // 单例约束：创建前检查是否已有记录，防止重复插入
       hooks: {
         beforeCreate: async () => {
           const count = await sequelize.models.Setting.count();

@@ -1,14 +1,16 @@
 'use strict';
 const { Model } = require('sequelize');
+
+/**
+ * 章节模型
+ *
+ * 属于一门课程，一个课程有多个章节。
+ * 通过 rank 字段控制排序，同课程内不应有重复的 title + 排序。
+ */
 module.exports = (sequelize, DataTypes) => {
   class Chapter extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      // 章节属于一门课程
       models.Chapter.belongsTo(models.Course, { as: 'course' });
     }
   }

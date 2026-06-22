@@ -1,15 +1,20 @@
 'use strict';
 const { Model } = require('sequelize');
 const bcrypt = require('bcryptjs');
+
+/**
+ * 用户模型
+ *
+ * 关键逻辑：
+ *   - password 字段使用自定义 setter，在赋值时自动 bcrypt 哈希（不存明文）
+ *   - 通过 beforeValidate 钩子在应用层做 email/username 唯一性预检查
+ *   - 数据库层有 email、username 唯一索引做兜底约束
+ *   - role: 0=普通用户, 100=管理员
+ */
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      // 用户通过 Like 中间表与 Course 建立多对多关联（点赞功能）
       models.User.belongsToMany(models.Course, {
         through: models.Like,
         foreignKey: 'userId',
@@ -53,12 +58,12 @@ module.exports = (sequelize, DataTypes) => {
           notNull: { msg: '密码必须填写。' },
           notEmpty: { msg: '密码不能为空。' },
         },
+        // 自定义 setter：在赋值时自动用 bcrypt 加密密码
         set(value) {
           if (!value) return;
           if (value.length < 6 || value.length > 45) {
             throw new Error('密码长度必须是6 ~ 45之间。');
           }
-          // 对密码进行加密
           this.setDataValue('password', bcrypt.hashSync(value, 10));
         },
       },
@@ -92,12 +97,15 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'User',
+      // 数据库索引：email 和 username 唯一索引，role 普通索引用于筛选
       indexes: [
         { unique: true, fields: ['email'] },
         { unique: true, fields: ['username'] },
         { fields: ['role'] },
       ],
       hooks: {
+        // beforeValidate：变更 email/username 时提前检查唯一性，
+        // 给用户友好提示（比数据库抛 UniqueConstraintError 更友好）
         beforeValidate: async (instance) => {
           if (instance.changed('email')) {
             const existing = await sequelize.models.User.findOne({

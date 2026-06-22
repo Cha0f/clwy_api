@@ -7,9 +7,10 @@ const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
 
 /**
- * 查询课程列表
+ * 查询课程列表（后台）
  *
  * 支持多条件筛选：categoryId、userId、name（模糊）、recommended、introductory。
+ * 列表自动关联分类和讲师信息。
  *
  * GET /admin/courses?categoryId=&userId=&name=&recommended=&introductory=&currentPage=&pageSize=
  */
@@ -36,7 +37,7 @@ router.get('/', async function (req, res) {
       condition.where.userId = { [Op.eq]: query.userId };
     }
 
-    // 按名称模糊搜索（输入净化）
+    // 按名称模糊搜索（String 转换 + trim 防类型绕过）
     if (query.name) {
       const name = String(query.name).trim();
       if (name) {
@@ -71,7 +72,7 @@ router.get('/', async function (req, res) {
 /**
  * 查询课程详情
  *
- * 附带关联的分类和用户信息。
+ * 附带关联的分类和用户（讲师）信息。
  *
  * GET /admin/courses/:id
  */
@@ -103,6 +104,7 @@ router.post('/', async function (req, res) {
  * 删除课程
  *
  * 删除前检查是否有章节关联（有则禁止删除）。
+ * count 检查和 destroy 在事务中执行，防止并发竞态。
  *
  * DELETE /admin/courses/:id
  */
@@ -110,7 +112,7 @@ router.delete('/:id', async function (req, res) {
   try {
     const course = await getCourse(req);
 
-    // 在事务中检查章节关联并删除课程，防止竞态
+    // 在事务中检查章节关联并删除课程，防止并发竞态
     const sequelize = Course.sequelize;
     await sequelize.transaction(async (t) => {
       const count = await Chapter.count({
@@ -147,8 +149,9 @@ router.put('/:id', async function (req, res) {
 
 /**
  * 白名单过滤：允许课程相关字段通过
+ * 防止 mass assignment 攻击。
  *
- * @param {object} req
+ * @param {object} req - Express 请求对象
  * @returns {{categoryId: number, userId: number, name: string, image: string, recommended: boolean, introductory: boolean, content: string}}
  */
 function filterBody(req) {
@@ -164,7 +167,9 @@ function filterBody(req) {
 }
 
 /**
- * 课程列表关联配置：关联分类和用户（讲师）
+ * 课程列表关联配置
+ *
+ * 自动关联分类（category）和用户/讲师（user），仅在列表中返回常用字段。
  *
  * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
  */
@@ -181,7 +186,9 @@ function getCondition() {
 /**
  * 查询当前课程（含关联分类和用户）
  *
- * @param {object} req
+ * 通用方法，被查询详情、更新、删除复用。
+ *
+ * @param {object} req - Express 请求对象，需包含 req.params.id
  * @returns {Promise<import('sequelize').Model>}
  */
 async function getCourse(req) {

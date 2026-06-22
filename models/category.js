@@ -2,6 +2,9 @@
 const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Category extends Model {
+    static associate(models) {
+      // define association here
+    }
   }
   Category.init(
     {
@@ -26,6 +29,26 @@ module.exports = (sequelize, DataTypes) => {
               throw new Error('排序必须是正整数。');
             }
           },
+        },
+      },
+    },
+    {
+      sequelize,
+      modelName: 'Category',
+      // name 字段加唯一索引，防止重复分类名
+      indexes: [{ unique: true, fields: ['name'] }],
+      hooks: {
+        beforeValidate: async (instance) => {
+          // 如果 name 字段有变更，先查数据库是否存在同名分类
+          if (instance.changed('name')) {
+            const existing = await sequelize.models.Category.findOne({
+              where: { name: instance.name },
+            });
+            // 如果存在且不是当前记录本身，说明有重名
+            if (existing && existing.id !== instance.id) {
+              throw new Error('名称已经存在，请选择其他名称。');
+            }
+          }
         },
       },
     },

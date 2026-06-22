@@ -7,10 +7,10 @@ const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
 
 /**
- * 查询章节列表
+ * 查询章节列表（后台）
  *
  * 必填参数 courseId，按 rank 权重升序、id 升序排列。
- * 支持 title 模糊搜索。
+ * 支持 title 模糊搜索，自动关联课程信息。
  *
  * GET /admin/chapters?courseId=&title=&currentPage=&pageSize=
  */
@@ -35,7 +35,7 @@ router.get('/', async function (req, res) {
       },
     };
 
-    // title 模糊搜索（输入净化）
+    // title 模糊搜索（String 转换 + trim 防类型绕过）
     if (query.title) {
       const title = String(query.title).trim();
       if (title) {
@@ -77,6 +77,7 @@ router.get('/:id', async (req, res) => {
  * 创建章节
  *
  * 使用事务同步更新课程的 chaptersCount。
+ * 创建前验证 courseId 引用的课程存在，防止孤儿记录。
  *
  * POST /admin/chapters
  */
@@ -90,6 +91,7 @@ router.post('/', async function (req, res) {
       throw createError(400, '创建章节失败，课程不存在。');
     }
 
+    // 在事务中：创建章节 + 课程 chaptersCount + 1
     const chapter = await Chapter.sequelize.transaction(async (t) => {
       const ch = await Chapter.create(body, { transaction: t });
       await Course.increment('chaptersCount', {
@@ -114,6 +116,7 @@ router.post('/', async function (req, res) {
 router.delete('/:id', async function (req, res) {
   try {
     const chapter = await getChapter(req);
+    // 在事务中：删除章节 + 课程 chaptersCount - 1
     await Chapter.sequelize.transaction(async (t) => {
       await chapter.destroy({ transaction: t });
       await Course.decrement('chaptersCount', {
@@ -144,9 +147,10 @@ router.put('/:id', async function (req, res) {
 });
 
 /**
- * 白名单过滤：允许 courseId、title、content、video、rank 字段通过
+ * 白名单过滤：仅允许 courseId、title、content、video、rank 字段通过
+ * 防止 mass assignment 攻击。
  *
- * @param {object} req
+ * @param {object} req - Express 请求对象
  * @returns {{courseId: number, title: string, content: string, video: string, rank: number}}
  */
 function filterBody(req) {
@@ -160,7 +164,9 @@ function filterBody(req) {
 }
 
 /**
- * 查询章节关联的课程数据
+ * 章节关联配置
+ *
+ * 自动关联所属课程（course），排除 CourseId 外键冗余字段。
  *
  * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
  */
@@ -174,7 +180,9 @@ function getCondition() {
 /**
  * 查询当前章节（含关联课程）
  *
- * @param {object} req
+ * 通用方法，被查询详情、更新、删除复用。
+ *
+ * @param {object} req - Express 请求对象，需包含 req.params.id
  * @returns {Promise<import('sequelize').Model>}
  */
 async function getChapter(req) {

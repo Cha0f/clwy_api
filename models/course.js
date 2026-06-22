@@ -1,14 +1,21 @@
 'use strict';
 const { Model } = require('sequelize');
+
+/**
+ * 课程模型
+ *
+ * 核心业务模型，关联分类和用户（讲师），包含推荐/入门标记、
+ * 点赞数和章节数的计数器字段。
+ *
+ * 关联关系：
+ *   - belongsTo Category（分类）
+ *   - belongsTo User（讲师）
+ *   - hasMany Chapter（章节）
+ *   - belongsToMany User through Like（点赞用户）
+ */
 module.exports = (sequelize, DataTypes) => {
   class Course extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
       models.Course.belongsTo(models.Category, { as: 'category' });
       models.Course.belongsTo(models.User, { as: 'user' });
       models.Course.hasMany(models.Chapter, { as: 'chapter' });
@@ -104,13 +111,10 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Course',
+      // 为外键字段加索引，优化按分类/讲师筛选时的查询性能
       indexes: [
-        {
-          fields: ['categoryId'],
-        },
-        {
-          fields: ['userId'],
-        },
+        { fields: ['categoryId'] },
+        { fields: ['userId'] },
       ],
     },
   );
