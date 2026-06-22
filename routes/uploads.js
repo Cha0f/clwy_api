@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { success, failure } = require('../utils/responses');
 const createError = require('http-errors');
+const { Attachment } = require('../models');
 
 /**
  * 允许上传的文件 MIME 类型白名单
@@ -64,7 +65,6 @@ function generateFileName(file) {
 async function uploadToCos(file, fileName) {
   const COS_SDK = require('cos-nodejs-sdk-v5');
 
-  // 校验 COS 环境变量是否已配置（失败时给出明确提示）
   if (!process.env.COS_ACCESS_KEY_ID || !process.env.COS_ACCESS_KEY_SECRET) {
     throw createError(500, '文件上传服务未配置，请联系管理员。');
   }
@@ -82,7 +82,6 @@ async function uploadToCos(file, fileName) {
     Key: key,
     Body: file.buffer,
     ContentType: file.mimetype,
-    // 设置客户端缓存 1 年，提升重复访问性能
     CacheControl: 'public, max-age=31536000, immutable',
   };
 
@@ -93,7 +92,6 @@ async function uploadToCos(file, fileName) {
     throw createError(500, '文件上传至云端失败。');
   }
 
-  // 构造可公开访问的 CDN/存储桶 URL
   return `https://${params.Bucket}.cos.${params.Region}.myqcloud.com/${key}`;
 }
 
@@ -102,15 +100,16 @@ async function uploadToCos(file, fileName) {
  *
  * 上传至腾讯云 COS，文件名自动生成（防止冲突和路径穿越）。
  * 仅支持 JPG 和 PNG 格式，单文件不超过 10MB。
+ * 上传成功后自动记录附件信息到数据库。
  *
  * POST /uploads/oss
  *
  * 请求：multipart/form-data，字段名 "file"
- * 响应：{ url: "https://..." }
+ * 响应：{ url: "https://...", attachment: {...} }
  */
 router.post('/oss', async function (req, res) {
   try {
-    // 手动调用 multer 中间件并捕获其错误（multer 错误不会进入路由 try/catch）
+    // 手动调用 multer 中间件并捕获其错误
     await new Promise((resolve, reject) => {
       upload.single('file')(req, res, (err) => {
         if (err) return reject(err);
@@ -118,7 +117,6 @@ router.post('/oss', async function (req, res) {
       });
     });
 
-    // 检查文件是否上传成功
     if (!req.file) {
       throw createError(400, '请选择要上传的文件。');
     }
@@ -126,6 +124,21 @@ router.post('/oss', async function (req, res) {
     const file = req.file;
     const fileName = generateFileName(file);
     const url = await uploadToCos(file, fileName);
+
+    // 获取上传者 userId（前台用 req.userId，后台用 req.user.id）
+    const userId = req.userId || req.user?.id;
+
+    // 记录附件信息到数据库
+    const attachment = await Attachment.create({
+      userId,
+      originalname: file.originalname,
+      filename: fileName,
+      mimetype: file.mimetype,
+      size: String(file.size),
+      path: `uploads/images/${fileName}`,
+      fullpath: url,
+      url,
+    });
 
     success(res, '文件上传成功。', { url });
   } catch (error) {

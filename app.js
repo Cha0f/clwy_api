@@ -37,6 +37,7 @@ const adminCoursesRouter = require('./routes/admin/courses');
 const adminChaptersRouter = require('./routes/admin/chapters');
 const adminChartsRouter = require('./routes/admin/charts');
 const adminAuthRouter = require('./routes/admin/auth');
+const adminAttachmentsRouter = require('./routes/admin/attachments');
 
 const app = express();
 
@@ -86,8 +87,8 @@ app.use('/admin/chapters', adminAuth, adminChaptersRouter);
 app.use('/admin/charts', adminAuth, adminChartsRouter);
 // 管理员登录不需要认证中间件
 app.use('/admin/auth', adminAuthRouter);
-// 文件上传（前台用户 + 后台管理员均可访问）
 app.use('/admin/uploads', adminAuth, uploadsRouter);
+app.use('/admin/attachments', adminAuth, adminAttachmentsRouter);
 
 // 全局 404 兜底：前面所有路由未匹配的请求落在这里
 app.use((req, res) => {
