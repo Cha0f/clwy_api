@@ -2,12 +2,12 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 // 引入中间件
 const adminAuth = require('./middlewares/admin-auth');
 const userAuth = require('./middlewares/user-auth');
-require('dotenv').config();
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
 
 // 前台路由文件
 const indexRouter = require('./routes/index');

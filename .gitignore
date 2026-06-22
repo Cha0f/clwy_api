@@ -21,3 +21,4 @@ build/
 # 忽略idea配置
 .idea/
 .claude/
+.vscode/

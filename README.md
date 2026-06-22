@@ -87,7 +87,7 @@ npm install
 
 # 3. 配置环境变量
 cp .env.example .env
-# 编辑 .env，填入密钥和数据库连接信息
+# 编辑 .env，配置端口、JWT 密钥和数据库连接信息
 # SECRET_KEY 生成：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 # 4. 修改数据库配置 config/config.json，填入实际的数据库连接信息
@@ -458,8 +458,9 @@ erDiagram
 | 变量名 | 必填 | 默认值 | 描述 |
 |--------|------|--------|------|
 | `SECRET_KEY` | 是 | — | JWT 签名密钥（32 字节 hex） |
-| `JWT_EXPIRES_IN` | 否 | `7d` | JWT Token 过期时间 |
+| `JWT_EXPIRES_IN` | 否 | `1h` | JWT Token 过期时间 |
 | `PORT` | 否 | `3000` | 服务器端口 |
+| `NODE_ENV` | 否 | `development` | 运行环境：development / production / test |
 | `DATABASE_URL` | 否 | — | 数据库连接 URL（需 config.json 开启 use_env_variable） |
 | `DB_PASSWORD` | 否 | config.json 中的值 | 数据库密码（优先级高于 config.json） |
 
