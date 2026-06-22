@@ -57,11 +57,10 @@ clwy-api/
 │   ├── settings.js             # 系统设置 CRUD（单例）
 │   └── users.js                # 用户 CRUD（排除 password 字段）
 ├── utils/
-│   ├── errors.js               # BadRequestError / UnauthorizedError / NotFoundError
-│   ├── pagination.js           # 分页参数计算工具
-│   └── responses.js            # success / failure 统一响应封装
-├── migrations/                 # Sequelize 数据库迁移
-├── seeders/                    # 种子数据
+│   ├── pagination.js           # 分页参数计算工具（currentPage/pageSize/offset）
+│   └── responses.js            # success / failure 统一响应封装（支持多错误类型 → 状态码映射）
+├── migrations/                 # Sequelize 数据库迁移（7 张表 + 索引 + 唯一约束）
+├── seeders/                    # 种子数据（6 用户 / 6 分类 / 14 课程 / 62 章节 / 15 文章 / 31 点赞 / 1 设置）
 ├── .env.example                # 环境变量模板
 ├── eslint.config.js            # ESLint 配置
 └── package.json
@@ -391,6 +390,7 @@ PUT /users/account
 | 400 | 请求参数错误（Sequelize 校验 / BadRequest） |
 | 401 | 认证失败（Token 缺失 / 无效 / 过期 / 无权限） |
 | 404 | 资源不存在 |
+| 409 | 操作冲突（唯一约束 / 外键约束 / 关联数据存在） |
 | 429 | 请求过于频繁（限流触发） |
 | 500 | 服务器内部错误（开发环境下返回 error.message） |
 
@@ -435,6 +435,7 @@ erDiagram
 
 | 表 | 索引 | 类型 |
 |----|------|------|
+| `Categories` | `name` | 唯一索引 |
 | `Courses` | `categoryId` | 普通索引 |
 | `Courses` | `userId` | 普通索引 |
 | `Users` | `email` | 唯一索引 |
@@ -445,22 +446,28 @@ erDiagram
 ## 安全特性
 
 - [x] **双认证体系** — 用户认证 (`user-auth`) 和 管理员认证 (`admin-auth`) 分离
+- [x] **JWT 算法强制校验** — `jwt.verify` 仅接受 `HS256` 算法，防止算法混淆攻击
 - [x] **JWT 身份认证** — Bearer Token 标准格式，过期时间通过环境变量配置
 - [x] **密码加密存储** — bcryptjs 加盐哈希，查询结果自动排除 password 字段
 - [x] **登录限流** — 前台 `/auth` 15 分钟 20 次，后台 `/admin/auth` 15 分钟 10 次
-- [x] **白名单输入过滤** — 所有写操作经 `filterBody` 过滤字段
+- [x] **账号枚举防护** — 登录接口统一错误消息，不区分"用户不存在"和"密码错误"
+- [x] **白名单输入过滤** — 所有写操作经 `filterBody` 过滤字段，防止 mass assignment
+- [x] **管理员提权防护** — 更新用户时禁止传 `role` 字段，改密码需验证当前管理员密码
 - [x] **Sequelize 参数化查询** — 防止 SQL 注入
 - [x] **引用完整性** — 外键关联校验，含删除保护（有子记录时禁止删除）
+- [x] **事务保护** — 点赞/删除等 check-then-act 操作在事务中执行，防止竞态
 - [x] **复合唯一索引** — Like 表 `(courseId, userId)` 防重复点赞
-- [x] **统一错误处理** — 不泄漏敏感信息
+- [x] **统一错误处理** — 不泄漏敏感信息，支持 SequelizeUniqueConstraintError → 409 等映射
 - [x] **分页参数上限** — `pageSize` 最大 100
+- [x] **HTTP 安全头** — Helmet 中间件提供 CSP、HSTS、X-Frame-Options 等安全头
+- [x] **CORS 受限** — 仅允许已知前端来源（localhost:5173 / localhost:3000）
 
 ## 环境变量
 
 | 变量名 | 必填 | 默认值 | 描述 |
 |--------|------|--------|------|
 | `SECRET_KEY` | 是 | — | JWT 签名密钥（32 字节 hex） |
-| `JWT_EXPIRES_IN` | 否 | `1h` | JWT Token 过期时间 |
+| `JWT_EXPIRES_IN` | 否 | 前台 `7d`，后台 `1h` | JWT Token 过期时间 |
 | `PORT` | 否 | `3000` | 服务器端口 |
 | `NODE_ENV` | 否 | `development` | 运行环境：development / production / test |
 | `DATABASE_URL` | 否 | — | 数据库连接 URL（需 config.json 开启 use_env_variable） |
