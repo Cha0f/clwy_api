@@ -74,6 +74,7 @@ app.use('/auth', authLimiter, authRouter);
 // 需登录的前台接口（userAuth 中间件解析并校验 JWT Token）
 app.use('/users', userAuth, usersRouter);
 app.use('/likes', userAuth, likesRouter);
+app.use('/uploads', userAuth, uploadsRouter);
 
 // --- 后台路由（adminAuth 中间件校验管理员身份） ---
 app.use('/admin/articles', adminAuth, adminArticlesRouter);
@@ -85,7 +86,7 @@ app.use('/admin/chapters', adminAuth, adminChaptersRouter);
 app.use('/admin/charts', adminAuth, adminChartsRouter);
 // 管理员登录不需要认证中间件
 app.use('/admin/auth', adminAuthRouter);
-// 文件上传（需要管理员认证）
+// 文件上传（前台用户 + 后台管理员均可访问）
 app.use('/admin/uploads', adminAuth, uploadsRouter);
 
 // 全局 404 兜底：前面所有路由未匹配的请求落在这里
