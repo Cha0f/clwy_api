@@ -52,7 +52,7 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
     // 通过 email 或 username 查找用户
     const user = await User.findOne(condition);
     if (!user) {
-      throw createError(404, '用户不存在，我无法登陆。');
+      throw createError(404, '用户不存在。');
     }
 
     // bcrypt 比对密码
@@ -63,7 +63,7 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
 
     // 必须是管理员角色才能登录后台
     if (user.role !== 100) {
-      throw createError(401, '您没有权限登陆管理员后台。');
+      throw createError(401, '您没有权限登录管理员后台。');
     }
 
     // 签发 JWT

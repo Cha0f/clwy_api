@@ -112,11 +112,29 @@ router.post('/', async function (req, res) {
 /**
  * 删除用户
  *
+ * 安全保护：
+ *   - 不允许管理员删除自己
+ *   - 不允许删除最后一位管理员（防止后台无人管理）
+ *
  * DELETE /admin/users/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
     const user = await getUser(req);
+
+    // 保护 1：不可自删
+    if (parseInt(user.id, 10) === parseInt(req.user.id, 10)) {
+      throw createError(400, '不能删除自己的账号。');
+    }
+
+    // 保护 2：如果是管理员，检查是否为最后一位
+    if (user.role === 100) {
+      const adminCount = await User.count({ where: { role: 100 } });
+      if (adminCount <= 1) {
+        throw createError(400, '至少保留一位管理员账号。');
+      }
+    }
+
     await user.destroy();
     success(res, '用户删除成功。');
   } catch (err) {

@@ -12,10 +12,6 @@ module.exports = (sequelize, DataTypes) => {
           notNull: { msg: '名称必须填写。' },
           notEmpty: { msg: '名称不能为空。' },
           len: { args: [2, 45], msg: '长度必须是2 ～ 45之间。' },
-          async isUnique(value) {
-            const category = await Category.findOne({ where: { name: value } });
-            if (category) throw new Error('名称已经存在，请选择其他名称。');
-          },
         },
       },
       rank: {
@@ -36,6 +32,18 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Category',
+      hooks: {
+        beforeValidate: async (instance) => {
+          if (instance.changed('name')) {
+            const existing = await sequelize.models.Category.findOne({
+              where: { name: instance.name },
+            });
+            if (existing && existing.id !== instance.id) {
+              throw new Error('名称已经存在，请选择其他名称。');
+            }
+          }
+        },
+      },
     },
   );
   return Category;

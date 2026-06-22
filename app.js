@@ -75,7 +75,7 @@ app.use((req, res) => {
   });
 });
 
-// 全局错误处理
+// 全局错误处理（兜底：仅捕获路由 try/catch 遗漏的错误）
 app.use((err, req, res, next) => {
   console.error('未捕获的错误:', err);
   res.status(500).json({

@@ -26,12 +26,6 @@ module.exports = (sequelize, DataTypes) => {
           notNull: { msg: '邮箱必须填写。' },
           notEmpty: { msg: '邮箱不能为空。' },
           isEmail: { msg: '邮箱格式不正确。' },
-          async isUnique(value) {
-            const user = await User.findOne({ where: { email: value } });
-            if (user) {
-              throw new Error('邮箱已存在，请直接登录。');
-            }
-          },
         },
       },
       username: {
@@ -41,12 +35,6 @@ module.exports = (sequelize, DataTypes) => {
           notNull: { msg: '用户名必须填写。' },
           notEmpty: { msg: '用户名不能为空。' },
           len: { args: [2, 45], msg: '用户名长度必须是2 ~ 45之间。' },
-          async isUnique(value) {
-            const user = await User.findOne({ where: { username: value } });
-            if (user) {
-              throw new Error('用户名已经存在。');
-            }
-          },
         },
       },
       nickname: {
@@ -109,6 +97,26 @@ module.exports = (sequelize, DataTypes) => {
         { unique: true, fields: ['username'] },
         { fields: ['role'] },
       ],
+      hooks: {
+        beforeValidate: async (instance) => {
+          if (instance.changed('email')) {
+            const existing = await sequelize.models.User.findOne({
+              where: { email: instance.email },
+            });
+            if (existing && existing.id !== instance.id) {
+              throw new Error('邮箱已存在，请直接登录。');
+            }
+          }
+          if (instance.changed('username')) {
+            const existing = await sequelize.models.User.findOne({
+              where: { username: instance.username },
+            });
+            if (existing && existing.id !== instance.id) {
+              throw new Error('用户名已经存在。');
+            }
+          }
+        },
+      },
     },
   );
   return User;

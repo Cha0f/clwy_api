@@ -76,13 +76,21 @@ router.get('/:id', async (req, res) => {
 /**
  * 创建章节
  *
+ * 使用事务同步更新课程的 chaptersCount。
+ *
  * POST /admin/chapters
  */
 router.post('/', async function (req, res) {
   try {
     const body = filterBody(req);
-    const chapter = await Chapter.create(body);
-    await Course.increment('chaptersCount', { where: { id: chapter.courseId } });
+    const chapter = await Chapter.sequelize.transaction(async (t) => {
+      const ch = await Chapter.create(body, { transaction: t });
+      await Course.increment('chaptersCount', {
+        where: { id: ch.courseId },
+        transaction: t,
+      });
+      return ch;
+    });
     success(res, '创建章节成功。', { chapter }, 201);
   } catch (err) {
     failure(res, err);
@@ -92,13 +100,20 @@ router.post('/', async function (req, res) {
 /**
  * 删除章节
  *
+ * 使用事务同步更新课程的 chaptersCount。
+ *
  * DELETE /admin/chapters/:id
  */
 router.delete('/:id', async function (req, res) {
   try {
     const chapter = await getChapter(req);
-    await chapter.destroy();
-    await Course.decrement('chaptersCount', { where: { id: chapter.courseId } });
+    await Chapter.sequelize.transaction(async (t) => {
+      await chapter.destroy({ transaction: t });
+      await Course.decrement('chaptersCount', {
+        where: { id: chapter.courseId },
+        transaction: t,
+      });
+    });
     success(res, '章节删除成功。');
   } catch (err) {
     failure(res, err);
