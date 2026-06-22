@@ -82,6 +82,7 @@ router.post('/', async function (req, res) {
   try {
     const body = filterBody(req);
     const chapter = await Chapter.create(body);
+    await Course.increment('chaptersCount', { where: { id: chapter.courseId } });
     success(res, '创建章节成功。', { chapter }, 201);
   } catch (err) {
     failure(res, err);
@@ -97,6 +98,7 @@ router.delete('/:id', async function (req, res) {
   try {
     const chapter = await getChapter(req);
     await chapter.destroy();
+    await Course.decrement('chaptersCount', { where: { id: chapter.courseId } });
     success(res, '章节删除成功。');
   } catch (err) {
     failure(res, err);

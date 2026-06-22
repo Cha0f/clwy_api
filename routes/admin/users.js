@@ -65,6 +65,20 @@ router.get('/', async function (req, res) {
 });
 
 /**
+ * 查询当前登陆的用户详情
+ *
+ * GET /admin/users/me
+ */
+router.get('/me', async function (req, res) {
+  try {
+    const user = req.user;
+    success(res, '查询当前用户信息成功。', { user });
+  } catch (err) {
+    failure(res, err);
+  }
+});
+
+/**
  * 查询用户详情
  *
  * 默认排除 password 字段。
