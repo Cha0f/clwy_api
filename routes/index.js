@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
       limit: 10,
     });
 
-    success(res, '获取首页数据成功。', {
+    success(res, '恭喜您，获取首页数据成功啦！', {
       recommendedCourses,
       likesCourses,
       introductoryCourses,
