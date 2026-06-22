@@ -87,10 +87,12 @@ npm install
 
 # 3. 配置环境变量
 cp .env.example .env
-# 编辑 .env，配置端口、JWT 密钥和数据库连接信息
+# 编辑 .env，配置端口、JWT 密钥和数据库密码
 # SECRET_KEY 生成：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
-# 4. 修改数据库配置 config/config.json，填入实际的数据库连接信息
+# 4. （可选）检查 config/config.json 中的数据库连接信息
+# 如果 .env 中已设置 DB_PASSWORD，则 config.json 中的 password 将被覆盖
+# 一般只需配置 .env 即可，无需修改 config.json
 
 # 5. 创建数据库
 npx sequelize-cli db:create
