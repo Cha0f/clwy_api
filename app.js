@@ -3,6 +3,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 // 引入中间件
@@ -32,8 +33,9 @@ const adminAuthRouter = require('./routes/admin/auth');
 
 const app = express();
 
-// CORS 跨域配置
-app.use(cors());
+// 安全头 & CORS 跨域配置
+app.use(helmet());
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'], credentials: true }));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

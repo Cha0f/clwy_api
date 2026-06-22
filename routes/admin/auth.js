@@ -72,7 +72,7 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
         userId: user.id,
       },
       process.env.SECRET_KEY,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' },
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1h', algorithm: 'HS256' },
     );
 
     success(res, '登录成功。', { token });

@@ -27,7 +27,7 @@ module.exports = async (req, res, next) => {
     }
 
     // 验证 token 是否正确并解析 payload
-    const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
+    const decodedToken = jwt.verify(token, process.env.SECRET_KEY, { algorithms: ['HS256'] });
     const { userId } = decodedToken;
     if (!userId) {
       throw createError(401, 'Token无效。');

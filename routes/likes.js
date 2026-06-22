@@ -25,25 +25,28 @@ router.post('/', async function (req, res) {
       throw createError(404, '课程不存在。');
     }
 
-    // 查询是否已点赞
-    const like = await Like.findOne({
-      where: {
-        courseId,
-        userId,
-      },
-    });
+    // 在事务中执行 check-then-act，避免竞态条件
+    const sequelize = Course.sequelize;
+    await sequelize.transaction(async (t) => {
+      // 查询是否已点赞（在事务内，可重复读）
+      const like = await Like.findOne({
+        where: { courseId, userId },
+        transaction: t,
+      });
 
-    if (!like) {
-      // 未点赞 → 创建点赞记录，课程点赞数 + 1
-      await Like.create({ courseId, userId });
-      await course.increment('likesCount');
-      success(res, '点赞成功。');
-    } else {
-      // 已点赞 → 删除点赞记录，课程点赞数 - 1
-      await like.destroy();
-      await course.decrement('likesCount');
-      success(res, '取消赞成功。');
-    }
+      if (!like) {
+        // 未点赞 → 创建点赞记录
+        // 如果数据库唯一索引检测到重复，会抛 UniqueConstraintError，事务自动回滚
+        await Like.create({ courseId, userId }, { transaction: t });
+        await course.increment('likesCount', { by: 1, transaction: t });
+        success(res, '点赞成功。');
+      } else {
+        // 已点赞 → 删除点赞记录
+        await like.destroy({ transaction: t });
+        await course.decrement('likesCount', { by: 1, transaction: t });
+        success(res, '取消赞成功。');
+      }
+    });
   } catch (error) {
     failure(res, error);
   }

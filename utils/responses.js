@@ -29,6 +29,14 @@ function failure(res, error) {
     // Sequelize 模型验证错误
     statusCode = 400;
     errors = error.errors.map((e) => e.message);
+  } else if (error.name === 'SequelizeUniqueConstraintError') {
+    // 数据库唯一约束冲突（重复注册等）
+    statusCode = 409;
+    errors = [error.errors?.map((e) => e.message).join('；') || '数据已存在，请勿重复操作。'];
+  } else if (error.name === 'SequelizeForeignKeyConstraintError') {
+    // 外键约束冲突（引用了不存在的关联数据）
+    statusCode = 409;
+    errors = ['操作失败，关联数据不存在。'];
   } else if (error.name === 'JsonWebTokenError') {
     statusCode = 401;
     errors = ['您提交的 token 错误。'];

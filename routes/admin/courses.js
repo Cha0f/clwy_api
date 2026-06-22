@@ -110,13 +110,19 @@ router.delete('/:id', async function (req, res) {
   try {
     const course = await getCourse(req);
 
-    // 检查该课程下是否有章节
-    const count = await Chapter.count({ where: { courseId: req.params.id } });
-    if (count > 0) {
-      throw createError(400, '当前课程有章节，无法删除。');
-    }
+    // 在事务中检查章节关联并删除课程，防止竞态
+    const sequelize = Course.sequelize;
+    await sequelize.transaction(async (t) => {
+      const count = await Chapter.count({
+        where: { courseId: req.params.id },
+        transaction: t,
+      });
+      if (count > 0) {
+        throw createError(400, '当前课程有章节，无法删除。');
+      }
 
-    await course.destroy();
+      await course.destroy({ transaction: t });
+    });
     success(res, '课程删除成功。');
   } catch (err) {
     failure(res, err);
