@@ -27,6 +27,7 @@ const searchRouter = require('./routes/search');
 const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const likesRouter = require('./routes/likes');
+const uploadsRouter = require('./routes/uploads');
 // 后台路由
 const adminArticlesRouter = require('./routes/admin/articles');
 const adminCategoriesRouter = require('./routes/admin/categories');
@@ -84,6 +85,8 @@ app.use('/admin/chapters', adminAuth, adminChaptersRouter);
 app.use('/admin/charts', adminAuth, adminChartsRouter);
 // 管理员登录不需要认证中间件
 app.use('/admin/auth', adminAuthRouter);
+// 文件上传（需要管理员认证）
+app.use('/admin/uploads', adminAuth, uploadsRouter);
 
 // 全局 404 兜底：前面所有路由未匹配的请求落在这里
 app.use((req, res) => {
