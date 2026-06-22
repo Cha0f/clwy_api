@@ -72,13 +72,13 @@ router.get('/', async function (req, res) {
 /**
  * 查询课程详情
  *
- * 附带关联的分类和用户（讲师）信息。
+ * 附带关联的分类、用户（讲师）和章节信息。
  *
  * GET /admin/courses/:id
  */
 router.get('/:id', async (req, res) => {
   try {
-    const course = await getCourse(req);
+    const course = await getCourseDetail(req);
     success(res, '查询课程成功。', { course });
   } catch (err) {
     failure(res, err);
@@ -184,9 +184,35 @@ function getCondition() {
 }
 
 /**
+ * 课程详情关联配置
+ *
+ * 额外关联章节列表（按 rank 升序、id 降序），供详情页展示目录。
+ *
+ * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
+ */
+function getDetailCondition() {
+  return {
+    attributes: { exclude: ['CategoryId', 'UserId'] },
+    include: [
+      { model: Category, as: 'category', attributes: ['id', 'name'] },
+      { model: User, as: 'user', attributes: ['id', 'username', 'avatar'] },
+      {
+        model: Chapter,
+        as: 'chapter',
+        attributes: ['id', 'title', 'rank', 'createdAt'],
+        order: [
+          ['rank', 'ASC'],
+          ['id', 'DESC'],
+        ],
+      },
+    ],
+  };
+}
+
+/**
  * 查询当前课程（含关联分类和用户）
  *
- * 通用方法，被查询详情、更新、删除复用。
+ * 通用方法，被更新、删除复用。
  *
  * @param {object} req - Express 请求对象，需包含 req.params.id
  * @returns {Promise<import('sequelize').Model>}
@@ -194,6 +220,24 @@ function getCondition() {
 async function getCourse(req) {
   const { id } = req.params;
   const condition = getCondition();
+  const course = await Course.findByPk(id, condition);
+  if (!course) {
+    throw createError(404, `ID: ${id}的课程没有找到。`);
+  }
+  return course;
+}
+
+/**
+ * 查询课程详情（含关联分类、用户和章节）
+ *
+ * 专供详情页接口使用。
+ *
+ * @param {object} req - Express 请求对象，需包含 req.params.id
+ * @returns {Promise<import('sequelize').Model>}
+ */
+async function getCourseDetail(req) {
+  const { id } = req.params;
+  const condition = getDetailCondition();
   const course = await Course.findByPk(id, condition);
   if (!course) {
     throw createError(404, `ID: ${id}的课程没有找到。`);
