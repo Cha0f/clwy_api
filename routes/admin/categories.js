@@ -4,6 +4,7 @@ const { Category, Course } = require('../../models');
 const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
+const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询分类列表
