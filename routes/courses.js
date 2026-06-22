@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Course, Category, Chapter, User } = require('../models');
 const { success, failure } = require('../utils/responses');
-const { NotFoundError, BadRequestError } = require('../utils/errors');
+const createError = require('http-errors');
 const { getPagination } = require('../utils/pagination');
 
 /**
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     const { currentPage, pageSize, offset } = getPagination(query);
 
     if (!query.categoryId) {
-      throw new BadRequestError('获取课程列表失败，分类ID不能为空');
+      throw createError(400, '获取课程列表失败，分类ID不能为空');
     }
 
     const condition = {
@@ -79,7 +79,7 @@ router.get('/:id', async (req, res) => {
     };
     const course = await Course.findByPk(id, condition);
     if (!course) {
-      throw new NotFoundError(`ID: ${id}的课程未找到。`);
+      throw createError(404, `ID: ${id}的课程未找到。`);
     }
 
     success(res, '查询课程成功。', { course });

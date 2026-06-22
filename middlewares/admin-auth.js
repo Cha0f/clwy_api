@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { UnauthorizedError } = require('../utils/errors');
+const createError = require('http-errors');
 const { failure } = require('../utils/responses');
 
 /**
@@ -19,30 +19,30 @@ module.exports = async (req, res, next) => {
     // 从 Authorization 头中获取 Token（格式: Bearer <token>）
     const authHeader = req.headers.authorization;
     if (!authHeader || !/^Bearer\s+/i.test(authHeader)) {
-      throw new UnauthorizedError('当前接口需要认证才能访问');
+      throw createError(401, '当前接口需要认证才能访问');
     }
     const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new UnauthorizedError('Token格式错误。');
+      throw createError(401, 'Token格式错误。');
     }
 
     // 验证 token 是否正确并解析 payload
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
     const { userId } = decodedToken;
     if (!userId) {
-      throw new UnauthorizedError('Token无效。');
+      throw createError(401, 'Token无效。');
     }
 
     // 查询当前登录的用户
     const { User } = require('../models');
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new UnauthorizedError('用户不存在。');
+      throw createError(401, '用户不存在。');
     }
 
     // 验证当前用户是否是管理员
     if (user.role !== 100) {
-      throw new UnauthorizedError('您没有权限使用当前接口。');
+      throw createError(401, '您没有权限使用当前接口。');
     }
 
     // 验证通过，将 user 对象挂载到 req 上

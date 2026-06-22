@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Setting } = require('../../models');
-const { NotFoundError } = require('../../utils/errors');
+const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 
 /**
@@ -60,7 +60,7 @@ function filterBody(req) {
 async function getSettings() {
   const settings = await Setting.findOne();
   if (!settings) {
-    throw new NotFoundError('初始系统设置没有找到，请运行种子文件。');
+    throw createError(404, '初始系统设置没有找到，请运行种子文件。');
   }
   return settings;
 }

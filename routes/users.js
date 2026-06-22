@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User } = require('../models');
 const { success, failure } = require('../utils/responses');
-const { BadRequestError, NotFoundError } = require('../utils/errors');
+const createError = require('http-errors');
 const bcrypt = require('bcryptjs');
 
 /**
@@ -68,11 +68,11 @@ router.put('/account', async function (req, res) {
     };
 
     if (!body.currentPassword) {
-      throw new BadRequestError('当前密码必须填写。');
+      throw createError(400, '当前密码必须填写。');
     }
 
     if (body.password !== body.passwordConfirmation) {
-      throw new BadRequestError('两次输入的密码不一致。');
+      throw createError(400, '两次输入的密码不一致。');
     }
 
     // 获取用户时包含密码字段，用于比对
@@ -81,7 +81,7 @@ router.put('/account', async function (req, res) {
     // 验证当前密码是否正确
     const isPasswordValid = bcrypt.compareSync(body.currentPassword, user.password);
     if (!isPasswordValid) {
-      throw new BadRequestError('当前密码不正确。');
+      throw createError(400, '当前密码不正确。');
     }
 
     await user.update(body);
@@ -111,7 +111,7 @@ async function getUser(req, showPassword = false) {
   const user = await User.findByPk(id, condition);
 
   if (!user) {
-    throw new NotFoundError(`ID: ${id}的用户未找到。`);
+    throw createError(404, `ID: ${id}的用户未找到。`);
   }
 
   return user;

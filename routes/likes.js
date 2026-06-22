@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Course, Like, User } = require('../models');
 const { success, failure } = require('../utils/responses');
-const { NotFoundError } = require('../utils/errors');
+const createError = require('http-errors');
 const { getPagination } = require('../utils/pagination');
 
 /**
@@ -22,7 +22,7 @@ router.post('/', async function (req, res) {
     // 验证课程存在
     const course = await Course.findByPk(courseId);
     if (!course) {
-      throw new NotFoundError('课程不存在。');
+      throw createError(404, '课程不存在。');
     }
 
     // 查询是否已点赞

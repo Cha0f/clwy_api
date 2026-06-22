@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User } = require('../../models');
 const { Op } = require('sequelize');
-const { BadRequestError, UnauthorizedError, NotFoundError } = require('../../utils/errors');
+const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -37,10 +37,10 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
   try {
     const { login, password } = req.body;
     if (!login) {
-      throw new BadRequestError('邮箱/用户名必须填写。');
+      throw createError(400, '邮箱/用户名必须填写。');
     }
     if (!password || !password.length) {
-      throw new BadRequestError('密码必须填写。');
+      throw createError(400, '密码必须填写。');
     }
 
     const condition = {
@@ -52,18 +52,18 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
     // 通过 email 或 username 查找用户
     const user = await User.findOne(condition);
     if (!user) {
-      throw new NotFoundError('用户不存在，我无法登陆。');
+      throw createError(404, '用户不存在，我无法登陆。');
     }
 
     // bcrypt 比对密码
     const isPasswordValid = bcrypt.compareSync(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedError('密码错误。');
+      throw createError(401, '密码错误。');
     }
 
     // 必须是管理员角色才能登录后台
     if (user.role !== 100) {
-      throw new UnauthorizedError('您没有权限登陆管理员后台。');
+      throw createError(401, '您没有权限登陆管理员后台。');
     }
 
     // 签发 JWT

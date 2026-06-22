@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Chapter, Course } = require('../../models');
-const { NotFoundError, BadRequestError } = require('../../utils/errors');
+const createError = require('http-errors');
 const { Op } = require('sequelize');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
@@ -18,7 +18,7 @@ router.get('/', async function (req, res) {
   try {
     const query = req.query;
     if (!query.courseId) {
-      throw new BadRequestError('获取章节列表失败，课程ID不能为空。');
+      throw createError(400, '获取章节列表失败，课程ID不能为空。');
     }
     const { currentPage, pageSize, offset } = getPagination(query);
 
@@ -160,7 +160,7 @@ async function getChapter(req) {
   const condition = getCondition();
   const chapter = await Chapter.findByPk(id, condition);
   if (!chapter) {
-    throw new NotFoundError(`ID: ${id}的章节没有找到。`);
+    throw createError(404, `ID: ${id}的章节没有找到。`);
   }
   return chapter;
 }

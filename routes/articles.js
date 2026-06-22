@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Article } = require('../models');
 const { success, failure } = require('../utils/responses');
-const { NotFoundError } = require('../utils/errors');
+const createError = require('http-errors');
 const { getPagination } = require('../utils/pagination');
 
 /**
@@ -52,7 +52,7 @@ router.get('/:id', async function (req, res) {
 
     const article = await Article.findByPk(id);
     if (!article) {
-      throw new NotFoundError(`ID: ${id}的文章未找到。`);
+      throw createError(404, `ID: ${id}的文章未找到。`);
     }
 
     success(res, '查询文章成功。', { article });

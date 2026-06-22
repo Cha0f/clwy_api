@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User } = require('../../models');
 const { Op } = require('sequelize');
-const { NotFoundError } = require('../../utils/errors');
+const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
 
@@ -172,7 +172,7 @@ async function getUser(req) {
     attributes: { exclude: ['password'] },
   });
   if (!user) {
-    throw new NotFoundError(`ID: ${id}的用户没有找到。`);
+    throw createError(404, `ID: ${id}的用户没有找到。`);
   }
   return user;
 }

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Course, Chapter, User } = require('../models');
 const { success, failure } = require('../utils/responses');
-const { NotFoundError } = require('../utils/errors');
+const createError = require('http-errors');
 
 /**
  * 查询章节详情
@@ -23,7 +23,7 @@ router.get('/:id', async function (req, res) {
     });
 
     if (!chapter) {
-      throw new NotFoundError(`ID: ${id}的章节未找到。`);
+      throw createError(404, `ID: ${id}的章节未找到。`);
     }
 
     // 2. 懒加载该章节所属的课程（仅需 id、name、userId 用于下一步）

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Article } = require('../../models');
 const { Op } = require('sequelize');
-const { NotFoundError } = require('../../utils/errors');
+const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
 
@@ -134,7 +134,7 @@ async function getArticle(req) {
   const { id } = req.params;
   const article = await Article.findByPk(id);
   if (!article) {
-    throw new NotFoundError(`ID: ${id}的文章没有找到。`);
+    throw createError(404, `ID: ${id}的文章没有找到。`);
   }
   return article;
 }

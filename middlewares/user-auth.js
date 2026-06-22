@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { UnauthorizedError } = require('../utils/errors');
+const createError = require('http-errors');
 const { failure } = require('../utils/responses');
 
 /**
@@ -19,18 +19,18 @@ module.exports = async (req, res, next) => {
     // 从 Authorization 头中获取 Token（格式: Bearer <token>）
     const authHeader = req.headers.authorization;
     if (!authHeader || !/^Bearer\s+/i.test(authHeader)) {
-      throw new UnauthorizedError('当前接口需要认证才能访问');
+      throw createError(401, '当前接口需要认证才能访问');
     }
     const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new UnauthorizedError('Token格式错误。');
+      throw createError(401, 'Token格式错误。');
     }
 
     // 验证 token 是否正确并解析 payload
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
     const { userId } = decodedToken;
     if (!userId) {
-      throw new UnauthorizedError('Token无效。');
+      throw createError(401, 'Token无效。');
     }
 
     // 将 userId 挂载到 req，后续路由可通过 req.userId 获取

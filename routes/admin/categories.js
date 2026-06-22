@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { Category, Course } = require('../../models');
 const { Op } = require('sequelize');
-const { NotFoundError, BadRequestError } = require('../../utils/errors');
+const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
-const { getPagination } = require('../../utils/pagination');
 
 /**
  * 查询分类列表
@@ -95,7 +94,7 @@ router.delete('/:id', async function (req, res) {
     // 检查该分类下是否有课程
     const count = await Course.count({ where: { categoryId: req.params.id } });
     if (count > 0) {
-      throw new BadRequestError('当前分类有课程，无法删除。');
+      throw createError(409, '当前分类有课程，无法删除。');
     }
 
     await category.destroy();
@@ -144,7 +143,7 @@ async function getCategory(req) {
   const { id } = req.params;
   const categories = await Category.findByPk(id);
   if (!categories) {
-    throw new NotFoundError(`ID: ${id}的分类没有找到。`);
+    throw createError(404, `ID: ${id}的分类没有找到。`);
   }
   return categories;
 }
