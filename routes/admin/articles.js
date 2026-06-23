@@ -26,6 +26,14 @@ router.get('/', async function (req, res) {
       where: {},
     };
 
+    // 查询被软删除的数据
+    if (query.deleted === 'true') {
+      condition.paranoid = false;
+      condition.where.deletedAt = {
+        [Op.not]: null,
+      };
+    }
+
     // title 模糊搜索（输入净化防类型绕过）
     if (query.title) {
       const title = String(query.title).trim();
@@ -81,18 +89,53 @@ router.post('/', async function (req, res) {
 });
 
 /**
- * 删除文章
- *
- * DELETE /admin/articles/:id
+ * 删除到回收站
+ * POST /admin/articles/delete
  */
-router.delete('/:id', async function (req, res) {
+router.post('/delete', async function (req, res) {
   try {
-    const article = await getArticle(req);
-    await article.destroy();
+    const { id } = req.body;
+
+    await Article.destroy({ where: { id: id } });
     await clearCache(id);
-    success(res, '文章删除成功。');
-  } catch (err) {
-    failure(res, err);
+    success(res, '已删除到回收站。');
+  } catch (error) {
+    failure(res, error);
+  }
+});
+
+/**
+ * 从回收站恢复
+ * POST /admin/articles/restore
+ */
+router.post('/restore', async function (req, res) {
+  try {
+    const { id } = req.body;
+
+    await Article.restore({ where: { id: id } });
+    await clearCache(id);
+    success(res, '已恢复成功。');
+  } catch (error) {
+    failure(res, error);
+  }
+});
+
+/**
+ * 彻底删除
+ * POST /admin/articles/force_delete
+ */
+router.post('/force_delete', async function (req, res) {
+  try {
+    const { id } = req.body;
+
+    await Article.destroy({
+      where: { id: id },
+      force: true,
+    });
+    await clearCache(id);
+    success(res, '已彻底删除。');
+  } catch (error) {
+    failure(res, error);
   }
 });
 
@@ -147,7 +190,7 @@ async function getArticle(req) {
  * 清除缓存
  * @returns {Promise<void>}
  */
-async function clearCache() {
+async function clearCache(id) {
   // 清除所有文章列表缓存
   const keys = await getKeyByPattern('articles:*');
 

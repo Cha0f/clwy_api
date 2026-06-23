@@ -24,9 +24,13 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
       content: DataTypes.TEXT,
+      deletedAt: {
+        type: DataTypes.DATE,
+      },
     },
     {
       sequelize,
+      paranoid: true,
       modelName: 'Article',
     },
   );
