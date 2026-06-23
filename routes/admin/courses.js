@@ -1,268 +1,127 @@
+/**
+ * 管理员课程路由。
+ */
 const express = require('express');
-const router = express.Router();
-const { Course, Category, User, Chapter } = require('../../models');
-const { Op } = require('sequelize');
 const createError = require('http-errors');
-const { success, failure } = require('../../utils/responses');
-const { getPagination } = require('../../utils/pagination');
-const { getKeysByPattern, delKey } = require('../../utils/redis');
+const { Op } = require('sequelize');
+const { Category, Chapter, Course, User } = require('../../models');
+const { invalidateCourses } = require('../../utils/cache');
+const { success } = require('../../utils/responses');
+const { asyncRoute, findByPkOrFail, paginate, pickFields } = require('../../utils/routes');
 
-/**
- * 查询课程列表（后台）
- *
- * 支持多条件筛选：categoryId、userId、name（模糊）、recommended、introductory。
- * 列表自动关联分类和讲师信息。
- *
- * GET /admin/courses?categoryId=&userId=&name=&recommended=&introductory=&currentPage=&pageSize=
- */
-router.get('/', async function (req, res) {
-  try {
-    const query = req.query;
-    const { currentPage, pageSize, offset } = getPagination(query);
+const router = express.Router();
+const COURSE_FIELDS = [
+  'categoryId',
+  'userId',
+  'name',
+  'image',
+  'recommended',
+  'introductory',
+  'content',
+];
 
-    const condition = {
-      ...getCondition(),
-      order: [['id', 'DESC']],
-      limit: pageSize,
-      offset,
-      where: {},
-    };
-
-    // 按分类筛选
-    if (query.categoryId) {
-      condition.where.categoryId = query.categoryId;
-    }
-
-    // 按讲师筛选
-    if (query.userId) {
-      condition.where.userId = query.userId;
-    }
-
-    // 按名称模糊搜索（String 转换 + trim 防类型绕过）
-    if (query.name) {
-      const name = String(query.name).trim();
-      if (name) {
-        condition.where.name = { [Op.like]: `%${name}%` };
-      }
-    }
-
-    // 是否推荐（URL 参数为字符串，需转布尔值）
-    if (query.recommended) {
-      condition.where.recommended = query.recommended === 'true';
-    }
-
-    // 是否入门课程
-    if (query.introductory) {
-      condition.where.introductory = query.introductory === 'true';
-    }
-
-    const { count, rows } = await Course.findAndCountAll(condition);
-    success(res, '查询课程列表成功。', {
-      courses: rows,
-      pagination: {
-        total: count,
-        currentPage,
-        pageSize,
-      },
-    });
-  } catch (err) {
-    failure(res, err);
-  }
-});
-
-/**
- * 查询课程详情
- *
- * 附带关联的分类、用户（讲师）和章节信息。
- *
- * GET /admin/courses/:id
- */
-router.get('/:id', async (req, res) => {
-  try {
-    const course = await getCourseDetail(req);
-    success(res, '查询课程成功。', { course });
-  } catch (err) {
-    failure(res, err);
-  }
-});
-
-/**
- * 创建课程
- *
- * POST /admin/courses
- */
-router.post('/', async function (req, res) {
-  try {
-    const body = filterBody(req);
-    const course = await Course.create(body);
-    await clearCache();
-    success(res, '创建课程成功。', { course }, 201);
-  } catch (err) {
-    failure(res, err);
-  }
-});
-
-/**
- * 删除课程
- *
- * 删除前检查是否有章节关联（有则禁止删除）。
- * count 检查和 destroy 在事务中执行，防止并发竞态。
- *
- * DELETE /admin/courses/:id
- */
-router.delete('/:id', async function (req, res) {
-  try {
-    const course = await getCourse(req);
-
-    // 在事务中检查章节关联并删除课程，防止并发竞态
-    const sequelize = Course.sequelize;
-    await sequelize.transaction(async (t) => {
-      const count = await Chapter.count({
-        where: { courseId: req.params.id },
-        transaction: t,
-      });
-      if (count > 0) {
-        throw createError(400, '当前课程有章节，无法删除。');
-      }
-
-      await course.destroy({ transaction: t });
-    });
-    await clearCache(course);
-    success(res, '课程删除成功。');
-  } catch (err) {
-    failure(res, err);
-  }
-});
-
-/**
- * 更新课程
- *
- * PUT /admin/courses/:id
- */
-router.put('/:id', async function (req, res) {
-  try {
-    const body = filterBody(req);
-    const course = await getCourse(req);
-    await course.update(body);
-    await clearCache(course);
-    success(res, '课程更新成功', { course });
-  } catch (err) {
-    failure(res, err);
-  }
-});
-
-/**
- * 白名单过滤：允许课程相关字段通过
- * 防止 mass assignment 攻击。
- *
- * @param {object} req - Express 请求对象
- * @returns {{categoryId: number, userId: number, name: string, image: string, recommended: boolean, introductory: boolean, content: string}}
- */
-function filterBody(req) {
-  return {
-    categoryId: req.body.categoryId,
-    userId: req.body.userId,
-    name: req.body.name,
-    image: req.body.image,
-    recommended: req.body.recommended,
-    introductory: req.body.introductory,
-    content: req.body.content,
-  };
+function listAssociations() {
+  return [
+    { model: Category, as: 'category', attributes: ['id', 'name'] },
+    { model: User, as: 'user', attributes: ['id', 'username', 'avatar'] },
+  ];
 }
 
-/**
- * 课程列表关联配置
- *
- * 自动关联分类（category）和用户/讲师（user），仅在列表中返回常用字段。
- *
- * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
- */
-function getCondition() {
-  return {
-    attributes: { exclude: ['CategoryId', 'UserId'] },
-    include: [
-      { model: Category, as: 'category', attributes: ['id', 'name'] },
-      { model: User, as: 'user', attributes: ['id', 'username', 'avatar'] },
-    ],
-  };
-}
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    const where = {};
+    // 精确筛选字段仅在请求实际提供时添加。
+    if (req.query.categoryId) where.categoryId = req.query.categoryId;
+    if (req.query.userId) where.userId = req.query.userId;
 
-/**
- * 课程详情关联配置
- *
- * 额外关联章节列表（按 rank 升序、id 降序），供详情页展示目录。
- *
- * @returns {{include: [{as: string, model, attributes: string[]}], attributes: {exclude: string[]}}}
- */
-function getDetailCondition() {
-  return {
-    attributes: { exclude: ['CategoryId', 'UserId'] },
-    include: [
-      { model: Category, as: 'category', attributes: ['id', 'name'] },
-      { model: User, as: 'user', attributes: ['id', 'username', 'avatar'] },
+    // 名称筛选先规范化字符串，再构造 LIKE 条件。
+    const name = req.query.name ? String(req.query.name).trim() : '';
+    if (name) where.name = { [Op.like]: `%${name}%` };
+
+    // 查询字符串需要显式转换成布尔值；未提供时不参与筛选。
+    if (req.query.recommended) where.recommended = req.query.recommended === 'true';
+    if (req.query.introductory) where.introductory = req.query.introductory === 'true';
+
+    const data = await paginate(
+      Course,
+      req.query,
       {
-        model: Chapter,
-        as: 'chapter',
-        attributes: ['id', 'title', 'rank', 'createdAt'],
+        where,
+        include: listAssociations(),
+        order: [['id', 'DESC']],
+      },
+      'courses',
+    );
+
+    success(res, '查询课程列表成功。', data);
+  }),
+);
+
+router.get(
+  '/:id',
+  asyncRoute(async (req, res) => {
+    const course = await findByPkOrFail(
+      Course,
+      req.params.id,
+      {
+        include: [
+          ...listAssociations(),
+          { model: Chapter, as: 'chapter', attributes: ['id', 'title', 'rank', 'createdAt'] },
+        ],
+        // 关联章节使用完整别名路径排序，确保 Sequelize 生成有效 ORDER BY。
         order: [
-          ['rank', 'ASC'],
-          ['id', 'DESC'],
+          [{ model: Chapter, as: 'chapter' }, 'rank', 'ASC'],
+          [{ model: Chapter, as: 'chapter' }, 'id', 'DESC'],
         ],
       },
-    ],
-  };
-}
+      '课程',
+    );
 
-/**
- * 查询当前课程（含关联分类和用户）
- *
- * 通用方法，被更新、删除复用。
- *
- * @param {object} req - Express 请求对象，需包含 req.params.id
- * @returns {Promise<import('sequelize').Model>}
- */
-async function getCourse(req) {
-  const { id } = req.params;
-  const condition = getCondition();
-  const course = await Course.findByPk(id, condition);
-  if (!course) {
-    throw createError(404, `ID: ${id}的课程没有找到。`);
-  }
-  return course;
-}
+    success(res, '查询课程成功。', { course });
+  }),
+);
 
-/**
- * 查询课程详情（含关联分类、用户和章节）
- *
- * 专供详情页接口使用。
- *
- * @param {object} req - Express 请求对象，需包含 req.params.id
- * @returns {Promise<import('sequelize').Model>}
- */
-async function getCourseDetail(req) {
-  const { id } = req.params;
-  const condition = getDetailCondition();
-  const course = await Course.findByPk(id, condition);
-  if (!course) {
-    throw createError(404, `ID: ${id}的课程没有找到。`);
-  }
-  return course;
-}
+router.post(
+  '/',
+  asyncRoute(async (req, res) => {
+    const course = await Course.create(pickFields(req.body, COURSE_FIELDS));
+    await invalidateCourses([course.id]);
 
-/**
- * 清除缓存
- * @param course
- * @returns {Promise<void>}
- */
-async function clearCache(course = null) {
-  const keys = await getKeysByPattern('courses:*');
-  if (keys.length !== 0) {
-    await delKey(keys);
-  }
+    success(res, '创建课程成功。', { course }, 201);
+  }),
+);
 
-  if (course) {
-    await delKey(`course:${course.id}`);
-  }
-}
+router.put(
+  '/:id',
+  asyncRoute(async (req, res) => {
+    const course = await findByPkOrFail(Course, req.params.id, {}, '课程');
+    await course.update(pickFields(req.body, COURSE_FIELDS));
+    await invalidateCourses([course.id]);
+
+    success(res, '课程更新成功', { course });
+  }),
+);
+
+router.delete(
+  '/:id',
+  asyncRoute(async (req, res) => {
+    const course = await findByPkOrFail(Course, req.params.id, {}, '课程');
+    // 应用层给出友好提示，数据库外键负责阻止并发插入造成的孤儿数据。
+    await Course.sequelize.transaction(async (transaction) => {
+      const chapterCount = await Chapter.count({
+        where: { courseId: course.id },
+        transaction,
+      });
+      if (chapterCount > 0) {
+        throw createError(409, '当前课程有章节，无法删除。');
+      }
+      await course.destroy({ transaction });
+    });
+    await invalidateCourses([course.id]);
+
+    success(res, '课程删除成功。');
+  }),
+);
 
 module.exports = router;

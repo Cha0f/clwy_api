@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建用户与课程的点赞关系表。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // 先创建单列索引；业务复合唯一索引由下一条迁移添加。
     await queryInterface.createTable('Likes', {
       id: {
         allowNull: false,
@@ -33,7 +35,7 @@ module.exports = {
       fields: ['userId'],
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Likes');
   },
 };

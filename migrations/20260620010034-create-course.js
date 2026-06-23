@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建课程表及分类、讲师查询索引。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // likesCount 与 chaptersCount 是为列表查询准备的冗余计数器。
     await queryInterface.createTable('Courses', {
       id: {
         allowNull: false,
@@ -63,7 +65,7 @@ module.exports = {
       fields: ['userId'],
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Courses');
   },
 };

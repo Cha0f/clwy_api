@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建单例站点设置表。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // 单例约束由 Setting 模型的 beforeCreate hook 负责。
     await queryInterface.createTable('Settings', {
       id: {
         allowNull: false,
@@ -28,7 +30,7 @@ module.exports = {
       },
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Settings');
   },
 };

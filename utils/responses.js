@@ -7,6 +7,8 @@
  */
 
 const createError = require('http-errors');
+const env = require('../config/env');
+const { formatTimestamps } = require('./date-time');
 
 /**
  * 请求成功
@@ -20,7 +22,8 @@ function success(res, message, data = {}, code = 200) {
   res.status(code).json({
     status: code,
     message,
-    data,
+    // 在统一出口递归格式化，确保所有创建和更新时间遵循相同格式。
+    data: formatTimestamps(data),
   });
 }
 
@@ -44,7 +47,7 @@ function success(res, message, data = {}, code = 200) {
  */
 function failure(res, error) {
   let statusCode = 500;
-  let errors = '服务器错误。';
+  let errors = ['服务器错误。'];
 
   if (error.name === 'SequelizeValidationError') {
     // 模型字段验证失败（如字段为空、长度超限、格式不匹配等）
@@ -66,6 +69,10 @@ function failure(res, error) {
     // JWT 已过期
     statusCode = 401;
     errors = ['您的 token 已过期。'];
+  } else if (error.name === 'MulterError') {
+    // 文件数量、大小等 Multer 限制属于客户端请求错误。
+    statusCode = 400;
+    errors = [error.message];
   } else if (error instanceof createError.HttpError) {
     // 业务代码中用 http-errors throw 的自定义错误
     statusCode = error.status;
@@ -73,7 +80,7 @@ function failure(res, error) {
   }
 
   // 开发模式下将详细错误打印到控制台（便于调试）
-  if (process.env.NODE_ENV === 'development') {
+  if (env.nodeEnv === 'development') {
     console.error('错误详情:', error);
   }
 
@@ -96,12 +103,16 @@ function getDefaultMessage(statusCode) {
       return '请求参数错误。';
     case 401:
       return '认证失败。';
+    case 403:
+      return '禁止访问。';
     case 404:
       return '资源不存在。';
     case 409:
       return '操作冲突。';
     case 429:
       return '请求过于频繁。';
+    case 502:
+      return '上游服务错误。';
     default:
       return '服务器错误。';
   }

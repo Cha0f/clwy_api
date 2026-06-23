@@ -1,17 +1,9 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+/** 写入唯一一条站点设置。 @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    /**
-     * Add seed commands here.
-     *
-     * Example:
-     * await queryInterface.bulkInsert('People', [{
-     *   name: 'John Doe',
-     *   isBetaMember: false
-     * }], {});
-     */
+  async up(queryInterface) {
+    // Setting 是单例表，只写入一条站点基础信息。
     await queryInterface.bulkInsert(
       'Settings',
       [
@@ -27,13 +19,8 @@ module.exports = {
     );
   },
 
-  async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     *
-     * Example:
-     * await queryInterface.bulkDelete('People', null, {});
-     */
+  async down(queryInterface) {
+    // 回滚时清空系统设置。
     await queryInterface.bulkDelete('Settings', null, {});
   },
 };

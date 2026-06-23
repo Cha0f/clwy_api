@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "nodemon ./bin/www",
+    "test": "node --test test/*.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
@@ -26,7 +27,8 @@
     "multer": "^2.2.0",
     "mysql2": "^3.22.5",
     "redis": "^6.0.0",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "svg-captcha": "^1.4.0"
   },
   "devDependencies": {
     "eslint": "^10.5.0",

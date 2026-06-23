@@ -11,10 +11,10 @@ const logger = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
 
-const adminAuth = require('./middlewares/admin-auth');
-const userAuth = require('./middlewares/user-auth');
+const env = require('./config/env');
+const { adminAuth, userAuth } = require('./middlewares/auth');
+const { failure } = require('./utils/responses');
 
 // 前台路由
 const indexRouter = require('./routes/index');
@@ -28,6 +28,7 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const likesRouter = require('./routes/likes');
 const uploadsRouter = require('./routes/uploads');
+const captchaRouter = require('./routes/captcha');
 // 后台路由
 const adminArticlesRouter = require('./routes/admin/articles');
 const adminCategoriesRouter = require('./routes/admin/categories');
@@ -41,19 +42,22 @@ const adminAttachmentsRouter = require('./routes/admin/attachments');
 
 const app = express();
 
-// --- 安全与解析中间件 ---
-// helmet: 设置安全相关的 HTTP 头（X-Content-Type-Options、CSP、HSTS 等）
+// Helmet 在业务路由前统一写入 CSP、HSTS、X-Frame-Options 等安全响应头。
 app.use(helmet());
-// CORS: 仅允许前端已知来源（开发环境两个常见端口）
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'], credentials: true }));
-// morgan: HTTP 请求日志（dev 格式输出方法、路径、状态码和耗时）
+// CORS 使用明确的来源白名单，并允许前端携带认证信息。
+app.use(
+  cors({
+    origin: env.cors.origins,
+    credentials: true,
+  }),
+);
+// Morgan 的 dev 格式记录方法、路径、状态码和耗时，便于开发期排查请求。
 app.use(logger('dev'));
-// 解析 JSON 请求体（默认 100kb 上限）
+// 按顺序解析 JSON、表单和 Cookie，后续路由可直接读取 req.body/req.cookies。
 app.use(express.json());
-// 解析 URL-encoded 请求体（表单提交）
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-// 静态文件服务（public/ 目录）
+// public 目录存在时由 Express 直接提供静态资源。
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- 前台路由 ---
@@ -64,20 +68,21 @@ app.use('/chapters', chaptersRouter);
 app.use('/articles', articlesRouter);
 app.use('/settings', settingsRouter);
 app.use('/search', searchRouter);
+app.use('/captcha', captchaRouter);
 
-// 登录接口加频率限制：15 分钟最多 20 次，防止暴力枚举
+// 前台认证路由共享限流器：同一 IP 在 15 分钟内最多请求 20 次。
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { status: 429, message: '请求过于频繁，请15分钟后再试。' },
 });
 app.use('/auth', authLimiter, authRouter);
-// 需登录的前台接口（userAuth 中间件解析并校验 JWT Token）
+// 前台私有路由先校验 JWT，再进入用户、点赞和上传处理器。
 app.use('/users', userAuth, usersRouter);
 app.use('/likes', userAuth, likesRouter);
 app.use('/uploads', userAuth, uploadsRouter);
 
-// --- 后台路由（adminAuth 中间件校验管理员身份） ---
+// 后台业务路由统一先校验 JWT、用户存在性和管理员角色。
 app.use('/admin/articles', adminAuth, adminArticlesRouter);
 app.use('/admin/categories', adminAuth, adminCategoriesRouter);
 app.use('/admin/settings', adminAuth, adminSettingsRouter);
@@ -85,12 +90,12 @@ app.use('/admin/users', adminAuth, adminUsersRouter);
 app.use('/admin/courses', adminAuth, adminCoursesRouter);
 app.use('/admin/chapters', adminAuth, adminChaptersRouter);
 app.use('/admin/charts', adminAuth, adminChartsRouter);
-// 管理员登录不需要认证中间件
+// 管理员登录用于签发 Token，因此不能提前挂载 adminAuth。
 app.use('/admin/auth', adminAuthRouter);
 app.use('/admin/uploads', adminAuth, uploadsRouter);
 app.use('/admin/attachments', adminAuth, adminAttachmentsRouter);
 
-// 全局 404 兜底：前面所有路由未匹配的请求落在这里
+// 所有路由都未匹配时返回稳定的 JSON 404，而不是 Express 默认 HTML。
 app.use((req, res) => {
   res.status(404).json({
     status: 404,
@@ -98,14 +103,9 @@ app.use((req, res) => {
   });
 });
 
-// 全局错误处理：捕获路由中 try/catch 未处理的异常（保险网兜底）
-app.use((err, req, res, next) => {
-  console.error('未捕获的错误:', err);
-  res.status(500).json({
-    status: 500,
-    message: '服务器错误。',
-    errors: process.env.NODE_ENV === 'development' ? [err.message] : [],
-  });
+// 保险网：非 asyncRoute 中间件抛出的异常同样复用统一错误响应。
+app.use((error, req, res, _next) => {
+  failure(res, error);
 });
 
 module.exports = app;

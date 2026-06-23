@@ -1,71 +1,50 @@
-const express = require('express');
-const router = express.Router();
-const { Course, Chapter, User } = require('../models');
-const { success, failure } = require('../utils/responses');
-const createError = require('http-errors');
-const { setKey, getKey } = require('../utils/redis');
-
 /**
- * 查询章节详情
- *
- * 返回该章节信息、关联的课程和讲师，以及同属一个课程的其他所有章节。
- * 使用 Sequelize 懒加载（getCourse → getUser）替代深层嵌套 include，
- * 提高查询可读性和灵活性。
- *
- * GET /chapters/:id
+ * 前台章节详情路由。
  */
-router.get('/:id', async function (req, res) {
-  try {
+const express = require('express');
+const createError = require('http-errors');
+const { Chapter, Course, User } = require('../models');
+const { cacheKeys, remember } = require('../utils/cache');
+const { success } = require('../utils/responses');
+const { asyncRoute, findByPkOrFail } = require('../utils/routes');
+
+const router = express.Router();
+
+router.get(
+  '/:id',
+  asyncRoute(async (req, res) => {
     const { id } = req.params;
-
-    // 1. 查询当前章节，排除 CourseId 外键
-    let chapter = await getKey(`chapter:${id}`);
-    if (!chapter) {
-      chapter = await Chapter.findByPk(id, {
-        attributes: { exclude: ['CourseId'] },
-      });
-      if (!chapter) {
-        throw createError(404, `ID: ${id}的章节未找到。`);
-      }
-      await setKey(`chapter:${id}`, chapter);
-    }
-
-    // 2. 懒加载该章节所属的课程（仅需 id、name、userId 用于下一步）
-    let course = await getKey(`course:${chapter.courseId}`);
+    // 当前章节包含正文，使用独立详情缓存。
+    const chapter = await remember(cacheKeys.chapter(id), () =>
+      findByPkOrFail(Chapter, id, {}, '章节'),
+    );
+    // 章节页只需要课程摘要，不能与完整课程详情复用不同形状的缓存。
+    const course = await remember(cacheKeys.courseSummary(chapter.courseId), () =>
+      Course.findByPk(chapter.courseId, { attributes: ['id', 'name', 'userId'] }),
+    );
     if (!course) {
-      course = await chapter.getCourse({
-        attributes: ['id', 'name', 'userId'],
-      });
-      await setKey(`course:${chapter.courseId}`, course);
+      throw createError(404, '章节所属课程不存在。');
     }
 
-    // 3. 懒加载该课程的讲师信息
-    let user = await getKey(`user:${course.userId}`);
-    if (!user) {
-      user = await course.getUser({
-        attributes: ['id', 'username', 'nickname', 'avatar', 'company'],
-      });
-      await setKey(`user:${course.userId}`, user);
-    }
-
-    // 4. 查询同属一个课程的所有章节（供导航或目录使用）
-    let chapters = await getKey(`chapters:${course.id}`);
-    if (!chapters) {
-      chapters = await Chapter.findAll({
-        attributes: { exclude: ['CourseId', 'content'] },
-        where: { courseId: chapter.courseId },
-        order: [
-          ['rank', 'ASC'],
-          ['id', 'DESC'],
-        ],
-      });
-      await setKey(`chapters:${course.id}`, chapters);
-    }
+    // 讲师资料和同课程目录互不依赖，并行加载。
+    const [user, chapters] = await Promise.all([
+      remember(cacheKeys.publicUser(course.userId), () =>
+        User.findByPk(course.userId, { attributes: User.publicAttributes }),
+      ),
+      remember(cacheKeys.chapters(course.id), () =>
+        Chapter.findAll({
+          attributes: { exclude: ['content'] },
+          where: { courseId: course.id },
+          order: [
+            ['rank', 'ASC'],
+            ['id', 'DESC'],
+          ],
+        }),
+      ),
+    ]);
 
     success(res, '查询章节成功。', { chapter, course, user, chapters });
-  } catch (error) {
-    failure(res, error);
-  }
-});
+  }),
+);
 
 module.exports = router;

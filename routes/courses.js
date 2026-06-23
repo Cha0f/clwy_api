@@ -1,122 +1,72 @@
+/**
+ * 前台课程路由。
+ */
 const express = require('express');
-const router = express.Router();
-const { Course, Category, Chapter, User } = require('../models');
-const { success, failure } = require('../utils/responses');
 const createError = require('http-errors');
+const { Category, Chapter, Course, User } = require('../models');
+const { cacheKeys, remember } = require('../utils/cache');
 const { getPagination } = require('../utils/pagination');
-const { getKey, setKey } = require('../utils/redis');
+const { success } = require('../utils/responses');
+const { asyncRoute, findByPkOrFail, paginate } = require('../utils/routes');
 
-/**
- * 查询课程列表
- *
- * 必填参数 categoryId，按 id 降序排列。
- * 可选分页参数 currentPage / pageSize。
- *
- * GET /courses?categoryId=&page=&pageSize=
- */
-router.get('/', async (req, res) => {
-  try {
-    const query = req.query;
-    const categoryId = query.categoryId;
-    const { currentPage, pageSize, offset } = getPagination(query);
+const router = express.Router();
 
-    if (!query.categoryId) {
-      throw createError(400, '获取课程列表失败，分类ID不能为空');
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    // 课程列表必须属于一个明确分类，避免无条件扫描整张课程表。
+    const { categoryId } = req.query;
+    if (!categoryId) {
+      throw createError(400, '获取课程列表失败，分类ID不能为空。');
     }
-    const cacheKey = `courses:${categoryId}:${currentPage}:${pageSize}`;
-    const data = await getKey(cacheKey);
-    if (data) {
-      return success(res, '查询课程列表成功。', data);
-    }
-    const condition = {
-      attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
-      where: { categoryId: query.categoryId },
-      order: [['id', 'DESC']],
-      limit: pageSize,
-      offset,
-    };
-    const { count, rows } = await Course.findAndCountAll(condition);
 
-    await setKey(cacheKey, {
-      courses: rows,
-      pagination: {
-        total: count,
-        currentPage,
-        pageSize,
-      },
-    });
-    success(res, '查询课程列表成功。', {
-      courses: rows,
-      pagination: {
-        total: count,
-        currentPage,
-        pageSize,
-      },
-    });
-  } catch (err) {
-    failure(res, err);
-  }
-});
+    // 规范化分页值后构造稳定缓存键。
+    const { currentPage, pageSize } = getPagination(req.query);
+    const key = cacheKeys.courseList(categoryId, currentPage, pageSize);
+    const data = await remember(key, () =>
+      paginate(
+        Course,
+        req.query,
+        {
+          attributes: { exclude: ['content'] },
+          where: { categoryId },
+          order: [['id', 'DESC']],
+        },
+        'courses',
+      ),
+    );
 
-/**
- * 查询课程详情
- *
- * 附带关联的分类、章节列表和讲师信息。
- *
- * GET /courses/:id
- */
-router.get('/:id', async (req, res) => {
-  try {
+    success(res, '查询课程列表成功。', data);
+  }),
+);
+
+router.get(
+  '/:id',
+  asyncRoute(async (req, res) => {
     const { id } = req.params;
-
-    // 查询课程
-    let course = await getKey(`course:${id}`);
-    if (!course) {
-      course = await Course.findByPk(id, {
-        attributes: { exclude: ['CategoryId', 'UserId'] },
-      });
-      if (!course) {
-        throw createError(404, `ID: ${id}的课程未找到。`);
-      }
-      await setKey(`course:${id}`, course);
-    }
-
-    // 查询课程关联的分类
-    let category = await getKey(`category:${course.categoryId}`);
-    if (!category) {
-      category = await Category.findByPk(course.categoryId, {
-        attributes: { exclude: ['CategoryId', 'UserId'] },
-      });
-      await setKey(`category:${course.categoryId}`, category);
-    }
-
-    // 查询课程关联的用户
-    let user = await getKey(`user:${course.userId}`);
-    if (!user) {
-      user = await User.findByPk(course.userId, {
-        attributes: { exclude: ['password'] },
-      });
-      await setKey(`user:${course.userId}`, user);
-    }
-
-    // 查询课程关联的章节
-    let chapters = await getKey(`chapters:${course.id}`);
-    if (!chapters) {
-      chapters = await Chapter.findAll({
-        attributes: { exclude: ['CourseId', 'content'] },
-        where: { courseId: course.id },
-        order: [
-          ['rank', 'ASC'],
-          ['id', 'DESC'],
-        ],
-      });
-      await setKey(`chapters:${course.id}`, chapters);
-    }
+    // 课程主体、分类、公开讲师资料和章节目录分别缓存，便于精确失效。
+    const course = await remember(cacheKeys.course(id), () =>
+      findByPkOrFail(Course, id, {}, '课程'),
+    );
+    const [category, user, chapters] = await Promise.all([
+      remember(cacheKeys.category(course.categoryId), () => Category.findByPk(course.categoryId)),
+      remember(cacheKeys.publicUser(course.userId), () =>
+        User.findByPk(course.userId, { attributes: User.publicAttributes }),
+      ),
+      remember(cacheKeys.chapters(course.id), () =>
+        Chapter.findAll({
+          attributes: { exclude: ['content'] },
+          where: { courseId: course.id },
+          order: [
+            ['rank', 'ASC'],
+            ['id', 'DESC'],
+          ],
+        }),
+      ),
+    ]);
 
     success(res, '查询课程成功。', { course, category, user, chapters });
-  } catch (err) {
-    failure(res, err);
-  }
-});
+  }),
+);
 
 module.exports = router;

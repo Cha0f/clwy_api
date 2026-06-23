@@ -1,8 +1,9 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+/** 写入覆盖不同分类的课程示例数据。 @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
+    // 外键 ID 依赖用户和分类种子先在空数据库中执行。
     await queryInterface.bulkInsert('Courses', [
       // ===== 前端开发 (categoryId: 1) =====
       {
@@ -214,7 +215,7 @@ module.exports = {
     ]);
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.bulkDelete('Courses', null, {});
   },
 };

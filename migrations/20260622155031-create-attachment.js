@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建 COS 文件元数据表。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // 同时保存对象路径和公开 URL，便于删除管理与前台展示。
     await queryInterface.createTable('Attachments', {
       id: {
         allowNull: false,
@@ -51,7 +53,7 @@ module.exports = {
       },
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Attachments');
   },
 };

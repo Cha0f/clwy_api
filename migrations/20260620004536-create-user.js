@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建用户表及登录、角色查询索引。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // password 只保存 bcrypt 哈希，不保存明文密码。
     await queryInterface.createTable('Users', {
       id: {
         allowNull: false,
@@ -65,7 +67,7 @@ module.exports = {
       fields: ['role'],
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Users');
   },
 };

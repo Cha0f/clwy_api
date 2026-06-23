@@ -1,136 +1,68 @@
+/**
+ * 前台用户中心路由。
+ */
 const express = require('express');
-const router = express.Router();
-const { User } = require('../models');
-const { success, failure } = require('../utils/responses');
-const createError = require('http-errors');
 const bcrypt = require('bcryptjs');
-const { setKey, getKey, delKey } = require('../utils/redis');
+const createError = require('http-errors');
+const { User } = require('../models');
+const { cacheKeys, invalidateUsers, remember } = require('../utils/cache');
+const { success } = require('../utils/responses');
+const { asyncRoute, findByPkOrFail, pickFields } = require('../utils/routes');
 
-/**
- * 查询当前登录用户详情
- *
- * 通过 userAuth 中间件设置的 req.userId 查询用户，
- * 自动排除 password 字段。
- *
- * GET /users/me
- */
-router.get('/me', async function (req, res) {
-  try {
-    let user = await getKey(`user:${req.userId}`);
-    if (!user) {
-      user = await getUser(req);
-      await setKey(`user:${req.userId}`, user);
-    }
+const router = express.Router();
+
+router.get(
+  '/me',
+  asyncRoute(async (req, res) => {
+    // 私有资料使用独立命名空间，绝不与公开讲师资料缓存混用。
+    const user = await remember(cacheKeys.privateUser(req.userId), () =>
+      findByPkOrFail(User, req.userId, {}, '用户'),
+    );
+
     success(res, '查询当前用户信息成功。', { user });
-  } catch (error) {
-    failure(res, error);
-  }
-});
+  }),
+);
 
-/**
- * 更新用户信息
- *
- * 允许修改：头像、昵称、性别、公司、简介。
- * 密码修改请使用 PUT /users/account。
- *
- * PUT /users/info
- */
-router.put('/info', async function (req, res) {
-  try {
-    const body = {
-      avatar: req.body.avatar,
-      nickname: req.body.nickname,
-      gender: req.body.gender,
-      company: req.body.company,
-      introduce: req.body.introduce,
-    };
-
-    const user = await getUser(req);
+router.put(
+  '/info',
+  asyncRoute(async (req, res) => {
+    // 资料接口只能修改展示信息，账号字段由 /account 单独处理。
+    const body = pickFields(req.body, ['avatar', 'nickname', 'gender', 'company', 'introduce']);
+    const user = await findByPkOrFail(User, req.userId, {}, '用户');
+    // 模型校验通过后写入数据库。
     await user.update(body);
-    await clearCache(user);
-    success(res, '更新用户信息成功。', { user });
-  } catch (err) {
-    failure(res, err);
-  }
-});
+    // 同时清理私有资料和公开讲师资料，避免不同页面看到旧数据。
+    await invalidateUsers([user.id]);
 
-/**
- * 更新账户信息
- *
- * 可修改：邮箱、用户名、密码。
- * 必须提供 currentPassword 验证身份，password 和 passwordConfirmation 需一致。
- * 查询时传 showPassword = true 以获取加密密码用于比对。
- *
- * PUT /users/account
- */
-router.put('/account', async function (req, res) {
-  try {
-    const body = {
-      email: req.body.email,
-      username: req.body.username,
-      currentPassword: req.body.currentPassword,
-      password: req.body.password,
-      passwordConfirmation: req.body.passwordConfirmation,
-    };
+    success(res, '更新用户信息成功。', { user: user.toSafeJSON() });
+  }),
+);
 
-    if (!body.currentPassword) {
+router.put(
+  '/account',
+  asyncRoute(async (req, res) => {
+    const { currentPassword, password, passwordConfirmation } = req.body;
+    // 修改邮箱、用户名或密码前必须验证当前密码。
+    if (!currentPassword) {
       throw createError(400, '当前密码必须填写。');
     }
-
-    if (body.password !== body.passwordConfirmation) {
+    if (password !== passwordConfirmation) {
       throw createError(400, '两次输入的密码不一致。');
     }
 
-    // 获取用户时包含密码字段，用于比对
-    const user = await getUser(req, true);
-
-    // 验证当前密码是否正确
-    const isPasswordValid = bcrypt.compareSync(body.currentPassword, user.password);
-    if (!isPasswordValid) {
+    // 显式读取密码哈希，仅在本次服务端校验中使用。
+    const user = await findByPkOrFail(User.scope('withPassword'), req.userId, {}, '用户');
+    if (!bcrypt.compareSync(currentPassword, user.password)) {
       throw createError(400, '当前密码不正确。');
     }
 
+    // currentPassword 和 passwordConfirmation 从不传给 Sequelize。
+    const body = pickFields(req.body, ['email', 'username', 'password']);
     await user.update(body);
-    // 更新后删除密码再返回（不泄露哈希值）
-    delete user.dataValues.password;
-    await clearCache(user);
-    success(res, '更新账户成功。', { user });
-  } catch (err) {
-    failure(res, err);
-  }
-});
+    await invalidateUsers([user.id]);
 
-/**
- * 公共方法：查询当前用户
- *
- * @param {object} req - Express 请求对象，需包含 req.userId
- * @param {boolean} showPassword - 是否返回 password 字段（默认 false）
- * @returns {Promise<import('sequelize').Model>}
- */
-async function getUser(req, showPassword = false) {
-  const id = req.userId;
-  let condition = {};
-  if (!showPassword) {
-    condition = {
-      attributes: { exclude: ['password'] },
-    };
-  }
-  const user = await User.findByPk(id, condition);
-
-  if (!user) {
-    throw createError(404, `ID: ${id}的用户未找到。`);
-  }
-
-  return user;
-}
-
-/**
- * 清除缓存
- * @param user
- * @returns {Promise<void>}
- */
-async function clearCache(user) {
-  await delKey(`user:${user.id}`);
-}
+    success(res, '更新账户成功。', { user: user.toSafeJSON() });
+  }),
+);
 
 module.exports = router;

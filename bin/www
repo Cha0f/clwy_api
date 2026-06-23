@@ -1,73 +1,58 @@
 #!/usr/bin/env node
 
 /**
- * Module dependencies.
+ * HTTP 服务进程入口。
+ *
+ * app.js 只构造 Express 应用；本文件负责解析端口、创建 HTTP Server，
+ * 并处理监听阶段的系统错误。拆分后测试可以直接 require app 而不占用端口。
  */
+const debug = require('debug')('clwy-api:server');
+const http = require('http');
+const env = require('../config/env');
+const app = require('../app');
 
-var app = require('../app');
-var debug = require('debug')('clwy-api:server');
-var http = require('http');
-
-/**
- * Get port from environment and store in Express.
- */
-
-var port = normalizePort(process.env.PORT || '3000');
+// 环境变量既可以是数字端口，也可以是命名管道；默认监听 3000。
+const port = normalizePort(env.port);
+// 把规范化端口写回 Express，供其他模块通过 app.get('port') 读取。
 app.set('port', port);
 
-/**
- * Create HTTP server.
- */
-
-var server = http.createServer(app);
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
+// 使用同一个 Express 应用创建原生 HTTP 服务。
+const server = http.createServer(app);
+// 先开始监听，再注册启动阶段的错误和成功事件。
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
 
 /**
- * Normalize a port into a number, string, or false.
+ * 把端口输入规范化为数字、命名管道字符串或 false。
  */
-
-function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
+function normalizePort(value) {
+  const parsedPort = Number.parseInt(value, 10);
+  // 不能解析为数字时，把原值作为命名管道交给 Node.js。
+  if (Number.isNaN(parsedPort)) {
+    return value;
   }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
+  // 端口不能为负数；0 表示让操作系统自动分配端口。
+  return parsedPort >= 0 ? parsedPort : false;
 }
 
 /**
- * Event listener for HTTP server "error" event.
+ * 把常见监听错误转换为清晰日志并结束进程。
  */
-
 function onError(error) {
+  // 非 listen 系统调用错误不在这里解释，直接交给进程默认处理。
   if (error.syscall !== 'listen') {
     throw error;
   }
 
-  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
+  const bind = typeof port === 'string' ? `管道 ${port}` : `端口 ${port}`;
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      console.error(`${bind} 需要更高权限。`);
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      console.error(`${bind} 已被占用。`);
       process.exit(1);
       break;
     default:
@@ -76,11 +61,10 @@ function onError(error) {
 }
 
 /**
- * Event listener for HTTP server "listening" event.
+ * 服务开始监听后记录实际端口或命名管道。
  */
-
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  const address = server.address();
+  const bind = typeof address === 'string' ? `管道 ${address}` : `端口 ${address.port}`;
+  debug(`正在监听 ${bind}`);
 }

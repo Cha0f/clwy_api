@@ -1,40 +1,29 @@
+/**
+ * 前台站点设置路由。
+ */
 const express = require('express');
-const router = express.Router();
 const createError = require('http-errors');
 const { Setting } = require('../models');
-const { success, failure } = require('../utils/responses');
-const { setKey, getKey } = require('../utils/redis');
+const { cacheKeys, remember } = require('../utils/cache');
+const { success } = require('../utils/responses');
+const { asyncRoute } = require('../utils/routes');
 
-/**
- * 查询系统信息
- *
- * 返回站点基础配置（名称、ICP 备案、版权信息）。
- * Setting 为单例表，使用 findOne 取首行。
- *
- * GET /settings
- */
-router.get('/', async function (req, res) {
-  try {
-    // 缓存的 key 定义为： setting
-    const cacheKey = 'setting';
+const router = express.Router();
 
-    // 读取缓存中的数据
-    let setting = await getKey(cacheKey);
-
-    // 如果缓存中没有数据，则从数据库中读取数据
-    if (!setting) {
-      setting = await Setting.findOne();
-      if (!setting) {
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    // Setting 是单例表，因此使用固定缓存键和 findOne。
+    const setting = await remember(cacheKeys.setting, async () => {
+      const value = await Setting.findOne();
+      if (!value) {
         throw createError(404, '未找到系统设置，请联系管理员。');
       }
-      // 将数据写入缓存
-      await setKey(cacheKey, setting);
-    }
+      return value;
+    });
 
     success(res, '查询系统信息成功。', { setting });
-  } catch (error) {
-    failure(res, error);
-  }
-});
+  }),
+);
 
 module.exports = router;

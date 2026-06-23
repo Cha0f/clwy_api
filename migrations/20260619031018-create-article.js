@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建文章表；软删除列由后续迁移补充。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // 标题用于列表展示，正文使用 TEXT 保存长内容。
     await queryInterface.createTable('Articles', {
       id: {
         allowNull: false,
@@ -26,7 +28,7 @@ module.exports = {
       },
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Articles');
   },
 };
