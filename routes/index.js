@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Course, Category, User } = require('../models');
 const { success, failure } = require('../utils/responses');
+const { getKey, setKey } = require('../utils/redis');
 
 /**
  * 首页数据聚合接口
@@ -15,6 +16,11 @@ const { success, failure } = require('../utils/responses');
  */
 router.get('/', async (req, res) => {
   try {
+    // 如果有缓存，直接返回缓存
+    const data = await getKey('index');
+    if (data) return success(res, '查询首页数据成功。', data);
+
+    // 没有缓存就查询数据库
     // 1. 焦点图：查询 recommended = true 的课程，关联分类和讲师
     const recommendedCourses = await Course.findAll({
       attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
@@ -49,6 +55,9 @@ router.get('/', async (req, res) => {
       order: [['id', 'DESC']],
       limit: 10,
     });
+
+    // 设置缓存过期时间，为30分钟
+    await setKey('index', { recommendedCourses, likesCourses, introductoryCourses }, 30 * 60);
 
     success(res, '恭喜您，获取首页数据成功啦！', {
       recommendedCourses,

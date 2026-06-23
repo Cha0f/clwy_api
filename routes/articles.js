@@ -4,6 +4,7 @@ const { Article } = require('../models');
 const { success, failure } = require('../utils/responses');
 const createError = require('http-errors');
 const { getPagination } = require('../utils/pagination');
+const { setKey, getKey } = require('../utils/redis');
 
 /**
  * 查询文章列表
@@ -18,6 +19,11 @@ router.get('/', async function (req, res) {
     const query = req.query;
     const { currentPage, pageSize, offset } = getPagination(query);
 
+    // 定义带有 [当前页码] 和 [每页条数] 的 cacheKey 作为缓存的键
+    const cacheKey = `articles:${currentPage}:${pageSize}`;
+    const data = await getKey(cacheKey);
+    if (data) return success(res, '查询文章列表成功。', data);
+
     const condition = {
       attributes: { exclude: ['content'] },
       order: [['id', 'DESC']],
@@ -26,6 +32,14 @@ router.get('/', async function (req, res) {
     };
 
     const { count, rows } = await Article.findAndCountAll(condition);
+    await setKey(cacheKey, {
+      articles: rows,
+      pagination: {
+        total: count,
+        currentPage,
+        pageSize,
+      },
+    });
     success(res, '查询文章列表成功。', {
       articles: rows,
       pagination: {
@@ -50,9 +64,13 @@ router.get('/:id', async function (req, res) {
   try {
     const { id } = req.params;
 
-    const article = await Article.findByPk(id);
+    let article = await getKey(`article:${id}`);
     if (!article) {
-      throw createError(404, `ID: ${id}的文章未找到。`);
+      article = await Article.findByPk(id);
+      if (!article) {
+        throw createError(404, `ID: ${id}的文章未找到。`);
+      }
+      await setKey(`article:${id}`, article);
     }
 
     success(res, '查询文章成功。', { article });

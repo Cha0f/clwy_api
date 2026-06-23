@@ -3,6 +3,7 @@ const router = express.Router();
 const { Setting } = require('../../models');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
+const { delKey } = require('../../utils/redis');
 
 /**
  * 查询系统设置详情
@@ -30,6 +31,8 @@ router.put('/', async function (req, res) {
     const body = filterBody(req);
     const setting = await getSettings();
     await setting.update(body);
+    // 删除缓存
+    await delKey('setting');
     success(res, '系统设置更新成功', { setting });
   } catch (err) {
     failure(res, err);

@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
+const { getKeyByPattern, delKey } = require('../../utils/redis');
 
 /**
  * 查询文章列表
@@ -72,6 +73,7 @@ router.post('/', async function (req, res) {
   try {
     const body = filterBody(req);
     const article = await Article.create(body);
+    await clearCache();
     success(res, '创建文章成功。', { article }, 201);
   } catch (err) {
     failure(res, err);
@@ -87,6 +89,7 @@ router.delete('/:id', async function (req, res) {
   try {
     const article = await getArticle(req);
     await article.destroy();
+    await clearCache(id);
     success(res, '文章删除成功。');
   } catch (err) {
     failure(res, err);
@@ -103,6 +106,7 @@ router.put('/:id', async function (req, res) {
     const body = filterBody(req);
     const article = await getArticle(req);
     await article.update(body);
+    await clearCache(article.id);
     success(res, '文章更新成功', { article });
   } catch (err) {
     failure(res, err);
@@ -137,6 +141,26 @@ async function getArticle(req) {
     throw createError(404, `ID: ${id}的文章没有找到。`);
   }
   return article;
+}
+
+/**
+ * 清除缓存
+ * @returns {Promise<void>}
+ */
+async function clearCache() {
+  // 清除所有文章列表缓存
+  const keys = await getKeyByPattern('articles:*');
+
+  if (keys.length !== 0) {
+    await delKey(keys);
+  }
+
+  // 如果传递了id，则通过id清除文章详情缓存
+  if (id) {
+    // 如果是数组，则遍历
+    const keys = Array.isArray(id) ? id.map((item) => `article:${item}`) : `article:${id}`;
+    await delKey(keys);
+  }
 }
 
 module.exports = router;

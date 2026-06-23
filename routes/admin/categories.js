@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
+const { delKey } = require('../../utils/redis');
 
 /**
  * 查询分类列表（后台）
@@ -75,6 +76,7 @@ router.post('/', async function (req, res) {
   try {
     const body = filterBody(req);
     const category = await Category.create(body);
+    await clearCache();
     success(res, '创建分类成功。', { category }, 201);
   } catch (err) {
     failure(res, err);
@@ -106,6 +108,7 @@ router.delete('/:id', async function (req, res) {
 
       await category.destroy({ transaction: t });
     });
+    await clearCache();
     success(res, '分类删除成功。');
   } catch (err) {
     failure(res, err);
@@ -122,6 +125,7 @@ router.put('/:id', async function (req, res) {
     const body = filterBody(req);
     const category = await getCategory(req);
     await category.update(body);
+    await clearCache();
     success(res, '分类更新成功', { category });
   } catch (err) {
     failure(res, err);
@@ -157,6 +161,14 @@ async function getCategory(req) {
     throw createError(404, `ID: ${id}的分类没有找到。`);
   }
   return categories;
+}
+
+/**
+ * 清除缓存
+ * @returns {Promise<void>}
+ */
+async function clearCache(req, res) {
+  await delKey('categories');
 }
 
 module.exports = router;
