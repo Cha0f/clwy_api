@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * Sequelize 模型注册入口。
+ * 负责读取环境配置、创建数据库连接、自动加载模型并建立关联。
+ */
+
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');

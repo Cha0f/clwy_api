@@ -16,9 +16,9 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Course extends Model {
     static associate(models) {
-      models.Course.belongsTo(models.Category, { as: 'category' });
-      models.Course.belongsTo(models.User, { as: 'user' });
-      models.Course.hasMany(models.Chapter, { as: 'chapter' });
+      models.Course.belongsTo(models.Category, { as: 'category', foreignKey: 'categoryId' });
+      models.Course.belongsTo(models.User, { as: 'user', foreignKey: 'userId' });
+      models.Course.hasMany(models.Chapter, { as: 'chapter', foreignKey: 'courseId' });
       models.Course.belongsToMany(models.User, {
         through: models.Like,
         foreignKey: 'courseId',
@@ -112,10 +112,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'Course',
       // 为外键字段加索引，优化按分类/讲师筛选时的查询性能
-      indexes: [
-        { fields: ['categoryId'] },
-        { fields: ['userId'] },
-      ],
+      indexes: [{ fields: ['categoryId'] }, { fields: ['userId'] }],
     },
   );
   return Course;

@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+const createError = require('http-errors');
 
 /**
  * 系统设置模型（单例）
@@ -8,8 +9,7 @@ const { Model } = require('sequelize');
  * beforeCreate 钩子防止插入第二行数据。
  */
 module.exports = (sequelize, DataTypes) => {
-  class Setting extends Model {
-  }
+  class Setting extends Model {}
   Setting.init(
     {
       name: {
@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
         beforeCreate: async () => {
           const count = await sequelize.models.Setting.count();
           if (count >= 1) {
-            throw new Error('系统设置已存在，请使用更新接口进行修改。');
+            throw createError(409, '系统设置已存在，请使用更新接口进行修改。');
           }
         },
       },

@@ -1,17 +1,9 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+/** 写入课程分类及前台排序。 @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    /**
-     * Add seed commands here.
-     *
-     * Example:
-     * await queryInterface.bulkInsert('People', [{
-     *   name: 'John Doe',
-     *   isBetaMember: false
-     * }], {});
-     */
+  async up(queryInterface) {
+    // 按前台展示顺序写入六个课程分类。
     await queryInterface.bulkInsert(
       'Categories',
       [
@@ -26,13 +18,8 @@ module.exports = {
     );
   },
 
-  async down(queryInterface, Sequelize) {
-    /**
-     * Add commands to revert seed here.
-     *
-     * Example:
-     * await queryInterface.bulkDelete('People', null, {});
-     */
+  async down(queryInterface) {
+    // 回滚时删除本种子涉及的全部分类。
     await queryInterface.bulkDelete('Categories', null, {});
   },
 };

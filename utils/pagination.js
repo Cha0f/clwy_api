@@ -8,17 +8,43 @@
  * @param {number} maxPageSize - 每页最大条数，默认 100
  * @returns {{ currentPage: number, pageSize: number, offset: number }}
  */
+const createError = require('http-errors');
+
 function getPagination(query, maxPageSize = 100) {
-  // currentPage：从 query.currentPage 或 query.page 读取，非正数时默认为 1
-  const currentPage = Math.abs(Number(query.currentPage || query.page)) || 1;
-  // pageSize：从 query.pageSize 读取，限制在 1 ~ maxPageSize 范围内
-  const pageSize = Math.min(Math.abs(Number(query.pageSize)) || 10, maxPageSize);
+  // currentPage 优先于兼容参数 page；缺失时使用第一页。
+  const currentPage = parsePositiveInteger(query.currentPage ?? query.page, 1, '当前页码');
+  // pageSize 缺失时使用 10，非法值由解析函数统一抛出 400。
+  const requestedPageSize = parsePositiveInteger(query.pageSize, 10, '每页条数');
+  // 超过上限的合法整数按最大值执行，避免单次查询过多记录。
+  const pageSize = Math.min(requestedPageSize, maxPageSize);
+  // Sequelize 使用从 0 开始的 offset，因此页码需要先减一。
+  const offset = (currentPage - 1) * pageSize;
+
+  // 极大页码可能使乘法超出 JavaScript 安全整数范围。
+  if (!Number.isSafeInteger(offset)) {
+    throw createError(400, '分页范围超出限制。');
+  }
+
   return {
     currentPage,
     pageSize,
-    // offset = (当前页 - 1) × 每页条数（Sequelize 的 LIMIT/OFFSET 标准实现）
-    offset: (currentPage - 1) * pageSize,
+    offset,
   };
+}
+
+function parsePositiveInteger(value, fallback, fieldName) {
+  // undefined、null 和空字符串都表示调用方没有提供该参数。
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  // Number 负责接收数字字符串，随后必须再次验证整数范围和正数约束。
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number <= 0) {
+    throw createError(400, `${fieldName}必须是正整数。`);
+  }
+
+  return number;
 }
 
 module.exports = { getPagination };

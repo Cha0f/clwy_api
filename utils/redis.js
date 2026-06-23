@@ -1,73 +1,94 @@
+/**
+ * Redis 底层适配器。
+ *
+ * 本文件只负责连接和原子读写；业务缓存键与失效规则位于 cache.js。
+ */
 const { createClient } = require('redis');
 
-// 创建全局的 Redis客户端实例
 let client;
 
 /**
- * 初始化 Redis 客户端
+ * 获取已连接的单例 Redis 客户端。
  */
-const redisClient = async () => {
-  if (client) return; // 如果客户端初始化，则不再重复初始化
+async function redisClient() {
+  // 已打开的连接可以安全复用，避免每个请求创建新 TCP 连接。
+  if (client?.isOpen) {
+    return client;
+  }
 
-  const url = process.env.REDIS_URL || 'redis://localhost:6379';
-  client = await createClient({ url })
-    .on('error', (err) => console.error('Redis 连接失败', err))
-    .connect();
-};
+  // 第一次调用或连接已关闭时重新创建客户端。
+  client = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  // 连接建立后的异步错误不会进入当前 Promise，因此单独监听并记录。
+  client.on('error', (error) => console.error('Redis 连接失败:', error));
+  // connect 完成后再把客户端交给调用方。
+  await client.connect();
+  return client;
+}
 
 /**
- * 存入数组或对象，并可选地设置过期时间
- * @param key 键名
- * @param value 要存储的值
- * @param ttl 可选，以秒为单位的过期时间，默认不设置
+ * 写入可 JSON 序列化的数据。
+ *
+ * @param {string} key 缓存键
+ * @param {any} value 缓存值
+ * @param {number|null} ttl 秒级有效期；null 表示不主动过期
  */
-const setKey = async (key, value, ttl = null) => {
-  if (!client) await redisClient(); // 确保客户端意见初始化
-  value = JSON.stringify(value); // 将对象转换为JSON字符串
-  await client.set(key, value);
-
-  // 如果提供了 ttl ，则设置过期时间
-  if (ttl !== null) await client.expire(key, ttl);
-};
+async function setKey(key, value, ttl = null) {
+  const connection = await redisClient();
+  const serialized = JSON.stringify(value);
+  if (ttl !== null) {
+    // SET EX 在一条命令中同时写值和有效期，不存在 SET/EXPIRE 中间窗口。
+    await connection.set(key, serialized, { EX: ttl });
+    return;
+  }
+  await connection.set(key, serialized);
+}
 
 /**
- * 读取数组或对象
- * @param key 键名
- * @returns {Promise<any>} 解析后的JSON对象或数组
+ * 读取并反序列化缓存；键不存在时返回 null。
  */
-const getKey = async (key) => {
-  if (!client) await redisClient(); // 确保客户端已经初始化
-  const value = await client.get(key); // 将获取到的JSON字符串转换回对象
-  return value ? JSON.parse(value) : null; // 如果value为空，返回null而不是抛出错误
-};
+async function getKey(key) {
+  const connection = await redisClient();
+  const value = await connection.get(key);
+  return value === null ? null : JSON.parse(value);
+}
 
 /**
- * 清除缓存数据
- * @param key
- * @returns {Promise<void>}
+ * 删除一个或多个缓存键。
  */
-const delKey = async (key) => {
-  if (!client) await redisClient();
-  await client.del(key);
-};
+async function delKey(key) {
+  const connection = await redisClient();
+  const keys = Array.isArray(key) ? key : [key];
+  // Redis DEL 不接受空参数，因此空数组直接结束。
+  if (keys.length === 0) {
+    return;
+  }
+  await connection.del(keys);
+}
 
 /**
- * 获取匹配模式的所有键名
- * @param pattern
- * @return {Promise<*>}
+ * 返回匹配给定模式的缓存键。
+ *
+ * 当前键空间只保存本应用缓存且规模较小，因此使用 KEYS；
+ * 如果未来进入大规模共享 Redis，应改用增量 SCAN。
  */
-const getKeysByPattern = async (pattern) => {
-  if (!client) await redisClient();
-  return await client.keys(pattern);
-};
+async function getKeysByPattern(pattern) {
+  const connection = await redisClient();
+  return connection.keys(pattern);
+}
 
 /**
- * 清空所有缓存数据
- * @returns {Promise<void>}
+ * 清空当前 Redis 实例中的全部数据库。
  */
-const flushAll = async () => {
-  if (!client) await redisClient();
-  await client.flushAll();
-};
+async function flushAll() {
+  const connection = await redisClient();
+  await connection.flushAll();
+}
 
-module.exports = { redisClient, setKey, delKey, getKey, getKeysByPattern, flushAll };
+module.exports = {
+  delKey,
+  flushAll,
+  getKey,
+  getKeysByPattern,
+  redisClient,
+  setKey,
+};

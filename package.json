@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "nodemon ./bin/www",
+    "test": "node --test test/*.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

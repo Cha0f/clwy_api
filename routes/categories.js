@@ -1,33 +1,30 @@
-const express = require('express');
-const router = express.Router();
-const { Category } = require('../models');
-const { success, failure } = require('../utils/responses');
-const { getKey, setKey } = require('../utils/redis');
-
 /**
- * 查询分类列表
- *
- * 按 rank（排序权重）升序、id 降序返回全部分类。
- *
- * GET /categories
+ * 前台分类路由。
  */
-router.get('/', async (req, res) => {
-  try {
-    let categories = await getKey('categories');
-    if (!categories) {
-      categories = await Category.findAll({
+const express = require('express');
+const { Category } = require('../models');
+const { cacheKeys, remember } = require('../utils/cache');
+const { success } = require('../utils/responses');
+const { asyncRoute } = require('../utils/routes');
+
+const router = express.Router();
+
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    // 分类变化频率低，读取时优先复用完整分类列表缓存。
+    const categories = await remember(cacheKeys.categories, () =>
+      Category.findAll({
+        // rank 决定人工排序；相同 rank 时新分类排在前面。
         order: [
           ['rank', 'ASC'],
           ['id', 'DESC'],
         ],
-      });
-      await setKey('categories', categories);
-    }
+      }),
+    );
 
     success(res, '查询分类成功。', { categories });
-  } catch (err) {
-    failure(res, err);
-  }
-});
+  }),
+);
 
 module.exports = router;

@@ -1,13 +1,17 @@
 'use strict';
 const { Model } = require('sequelize');
 
+/**
+ * 点赞关系模型。
+ * courseId + userId 组成业务唯一键，确保同一用户不能重复点赞同一课程。
+ */
 module.exports = (sequelize, DataTypes) => {
   class Like extends Model {
     static associate(models) {
       // Like 属于一个课程
-      models.Like.belongsTo(models.Course, { as: 'course' });
+      models.Like.belongsTo(models.Course, { as: 'course', foreignKey: 'courseId' });
       // Like 属于一个用户
-      models.Like.belongsTo(models.User, { as: 'user' });
+      models.Like.belongsTo(models.User, { as: 'user', foreignKey: 'userId' });
     }
   }
   Like.init(

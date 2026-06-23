@@ -2,9 +2,10 @@
 
 const bcrypt = require('bcryptjs');
 
-/** @type {import('sequelize-cli').Migration} */
+/** 写入一个管理员和五个普通用户。 @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
+    // bulkInsert 不触发模型 setter，因此在种子中显式执行 bcrypt 哈希。
     await queryInterface.bulkInsert('Users', [
       {
         email: 'admin@clwy.cn',
@@ -87,7 +88,7 @@ module.exports = {
     ]);
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.bulkDelete('Users', null, {});
   },
 };

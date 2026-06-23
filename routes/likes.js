@@ -1,99 +1,76 @@
+/**
+ * 用户点赞路由。
+ */
 const express = require('express');
-const router = express.Router();
-const { Course, Like, User } = require('../models');
-const { success, failure } = require('../utils/responses');
 const createError = require('http-errors');
+const { Course, Like, User } = require('../models');
+const { invalidateCourses } = require('../utils/cache');
 const { getPagination } = require('../utils/pagination');
+const { success } = require('../utils/responses');
+const { asyncRoute, findByPkOrFail } = require('../utils/routes');
 
-/**
- * 点赞 / 取消赞
- *
- * 幂等接口：检查该用户是否已点赞过该课程。
- *   - 未点赞 → 新增 Like 记录，课程 likesCount + 1
- *   - 已点赞 → 删除 Like 记录，课程 likesCount - 1
- *
- * 整个 findOne → create/destroy → increment/decrement 序列在事务中执行，
- * 防止并发下的竞态条件。同时 (courseId, userId) 的唯一索引在数据库层做兜底约束。
- *
- * POST /likes
- */
-router.post('/', async function (req, res) {
-  try {
-    const userId = req.userId;
+const router = express.Router();
+
+router.post(
+  '/',
+  asyncRoute(async (req, res) => {
     const { courseId } = req.body;
+    const userId = req.userId;
 
-    // 先验证引用的课程是否存在
-    const course = await Course.findByPk(courseId);
-    if (!course) {
-      throw createError(404, '课程不存在。');
-    }
-
-    // 在事务中执行 check-then-act，避免并发竞态
-    const sequelize = Course.sequelize;
-    await sequelize.transaction(async (t) => {
-      // 在事务内查询是否已点赞（事务的隔离级别保证可重复读）
-      const like = await Like.findOne({
-        where: { courseId, userId },
-        transaction: t,
+    // 锁定课程行，把同一课程的点赞切换串行化。
+    const message = await Course.sequelize.transaction(async (transaction) => {
+      const course = await Course.findByPk(courseId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
       });
-
-      if (!like) {
-        // 未点赞 → 创建点赞记录，并增加课程的点赞数
-        await Like.create({ courseId, userId }, { transaction: t });
-        await course.increment('likesCount', { by: 1, transaction: t });
-        success(res, '点赞成功。');
-      } else {
-        // 已点赞 → 删除点赞记录，并减少课程的点赞数
-        await like.destroy({ transaction: t });
-        await course.decrement('likesCount', { by: 1, transaction: t });
-        success(res, '取消赞成功。');
+      if (!course) {
+        throw createError(404, '课程不存在。');
       }
-    });
-    // 事务自动提交：以上任一操作失败则全部回滚（likesCount 与 Like 记录保持一致）
-  } catch (error) {
-    failure(res, error);
-  }
-});
 
-/**
- * 查询用户点赞的课程列表
- *
- * 通过 User 与 Course 的多对多关联（through: Like）查询，
- * 分页返回当前用户点赞过的课程，按 id 降序（最新点赞优先）。
- *
- * GET /likes?currentPage=&pageSize=
- */
-router.get('/', async function (req, res) {
-  try {
-    const query = req.query;
-    const { currentPage, pageSize, offset } = getPagination(query);
+      // 课程锁持有期间读取当前用户的点赞状态。
+      const like = await Like.findOne({ where: { courseId, userId }, transaction });
+      if (like) {
+        // 已点赞：删除关系并同步减少冗余计数器。
+        await like.destroy({ transaction });
+        await course.decrement('likesCount', { by: 1, transaction });
+        return '取消赞成功。';
+      }
 
-    // 先查用户（用于后续的关联查询）
-    const user = await User.findByPk(req.userId);
-
-    // 通过 Sequelize 自动生成的 getLikeCourses 方法查询点赞课程
-    const courses = await user.getLikeCourses({
-      joinTableAttributes: [],          // 不返回中间表（Like）的字段
-      attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
-      order: [['id', 'DESC']],
-      limit: pageSize,
-      offset,
+      // 未点赞：创建唯一关系并同步增加冗余计数器。
+      await Like.create({ courseId, userId }, { transaction });
+      await course.increment('likesCount', { by: 1, transaction });
+      return '点赞成功。';
     });
 
-    // 获取点赞课程总数（供前端分页）
-    const count = await user.countLikeCourses();
+    // 事务提交后清理所有包含 likesCount 的课程缓存。
+    await invalidateCourses([courseId]);
+    success(res, message);
+  }),
+);
+
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    const { currentPage, pageSize, offset } = getPagination(req.query);
+    // 先确认 Token 中的用户仍然存在，避免对 null 调用关联方法。
+    const user = await findByPkOrFail(User, req.userId, {}, '用户');
+    // 点赞课程和总数互不依赖，可以并行查询。
+    const [courses, total] = await Promise.all([
+      user.getLikeCourses({
+        joinTableAttributes: [],
+        attributes: { exclude: ['content'] },
+        order: [['id', 'DESC']],
+        limit: pageSize,
+        offset,
+      }),
+      user.countLikeCourses(),
+    ]);
 
     success(res, '查询用户点赞的课程成功。', {
       courses,
-      pagination: {
-        total: count,
-        currentPage,
-        pageSize,
-      },
+      pagination: { total, currentPage, pageSize },
     });
-  } catch (error) {
-    failure(res, error);
-  }
-});
+  }),
+);
 
 module.exports = router;

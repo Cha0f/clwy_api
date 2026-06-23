@@ -1,11 +1,14 @@
 'use strict';
 const { Model } = require('sequelize');
+const createError = require('http-errors');
+
+/**
+ * 课程分类模型。
+ * name 在数据库和应用层保持唯一，rank 控制前台排序。
+ */
 module.exports = (sequelize, DataTypes) => {
-  class Category extends Model {
-    static associate(models) {
-      // define association here
-    }
-  }
+  // Category 的反向课程关系当前不参与查询，因此不声明额外关联。
+  class Category extends Model {}
   Category.init(
     {
       name: {
@@ -46,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
             });
             // 如果存在且不是当前记录本身，说明有重名
             if (existing && existing.id !== instance.id) {
-              throw new Error('名称已经存在，请选择其他名称。');
+              throw createError(409, '名称已经存在，请选择其他名称。');
             }
           }
         },

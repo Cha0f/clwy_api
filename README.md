@@ -1,359 +1,323 @@
 # CLWY API
 
-基于 **Express + Sequelize + MySQL** 的在线教育平台 RESTful API，包含前台和后台管理系统。
+CLWY API 是一个基于 Express、Sequelize、MySQL 和 Redis 的在线教育平台后端，提供公开课程内容、用户中心、点赞、图片上传以及后台管理接口。
+
+## 主要能力
+
+- 课程、分类、章节和文章查询
+- 用户注册、登录、资料及账户管理
+- 用户点赞与点赞课程列表
+- 管理员用户、课程、章节、分类、文章和系统设置管理
+- 文章软删除、恢复与彻底删除
+- 腾讯云 COS 图片上传与附件管理
+- 用户统计图表
+- Redis 查询缓存与写入后缓存失效
+- JWT 身份认证、登录限流、请求校验和统一响应
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|------|
-| 运行时 | Node.js 18+ |
-| 框架 | Express 4 |
-| 数据库 | MySQL 8 |
-| ORM | Sequelize 6 |
-| 认证 | JWT (jsonwebtoken) + bcryptjs |
-| 限流 | express-rate-limit |
-| 日志 | morgan |
-| 校验 | Sequelize Model Validation |
-| Lint | ESLint + Prettier |
+| 类型     | 技术                             |
+| -------- | -------------------------------- |
+| 运行时   | Node.js 18+                      |
+| Web 框架 | Express 5                        |
+| ORM      | Sequelize 6                      |
+| 数据库   | MySQL 8                          |
+| 缓存     | Redis                            |
+| 身份认证 | JWT + bcryptjs                   |
+| 文件上传 | Multer + 腾讯云 COS              |
+| 安全     | Helmet、CORS、express-rate-limit |
+| 日志     | Morgan                           |
+| 测试     | Node.js Test Runner              |
+| 代码质量 | ESLint + Prettier                |
 
-## 目录结构
+## 项目结构
 
-```
+```text
 clwy-api/
-├── app.js                      # Express 入口，路由挂载
-├── bin/www                     # HTTP 服务器启动入口
+├── app.js                         # Express 应用、中间件和路由挂载
+├── bin/www                        # HTTP 服务启动入口
 ├── config/
-│   └── config.json             # Sequelize 数据库配置（多环境）
+│   ├── config.js                  # Sequelize 多环境配置
+│   └── config.json                # Sequelize CLI 默认配置（保留文件）
 ├── middlewares/
-│   ├── admin-auth.js           # 管理员 Bearer Token 鉴权（验证 role=100）
-│   └── user-auth.js            # 通用用户鉴权（仅验证 Token，设 req.userId）
-├── models/                     # Sequelize 模型
-│   ├── index.js                # 模型加载器
-│   ├── article.js              # 文章模型
-│   ├── category.js             # 分类模型（名称唯一校验）
-│   ├── chapter.js              # 章节模型（关联课程）
-│   ├── course.js               # 课程模型（关联分类/用户/章节/点赞）
-│   ├── like.js                 # 点赞模型（多对多关联，复合唯一索引）
-│   ├── setting.js              # 系统设置模型（单例）
-│   └── user.js                 # 用户模型（bcrypt 密码加密，角色控制）
-├── routes/                     # 前台路由
-│   ├── index.js                # 首页数据（推荐/人气/入门课程）
-│   ├── categories.js           # 分类列表
-│   ├── courses.js              # 课程列表（分页+分类筛选）、课程详情
-│   ├── chapters.js             # 章节详情（含课程+讲师+同课程章节列表）
-│   ├── articles.js             # 文章列表（分页）、文章详情
-│   ├── search.js               # 课程搜索（名称模糊匹配）
-│   ├── settings.js             # 系统信息
-│   ├── auth.js                 # 用户注册、登录（JWT 签发）
-│   ├── users.js                # 用户中心（信息查询/更新、密码修改）
-│   └── likes.js                # 点赞/取消赞、点赞课程列表
-├── routes/admin/               # 后台管理路由
-│   ├── auth.js                 # 管理员登录（限流 10 次/15 分钟 + JWT）
-│   ├── articles.js             # 文章 CRUD
-│   ├── categories.js           # 分类 CRUD（含删除保护）
-│   ├── chapters.js             # 章节 CRUD（含课程关联）
-│   ├── charts.js               # 统计图表（性别分布、月度用户注册）
-│   ├── courses.js              # 课程 CRUD（多条件筛选 + 删除保护）
-│   ├── settings.js             # 系统设置 CRUD（单例）
-│   └── users.js                # 用户 CRUD（排除 password 字段）
+│   ├── auth.js                    # 前后台共用 JWT 认证
+│   └── image-upload.js            # Multer 图片解析与限制
+├── migrations/                    # 数据表、索引、软删除列和外键迁移
+├── models/
+│   ├── index.js                   # Sequelize 初始化与模型加载
+│   ├── article.js                 # 文章模型（支持 paranoid 软删除）
+│   ├── attachment.js              # 上传附件模型
+│   ├── category.js                # 课程分类模型
+│   ├── chapter.js                 # 课程章节模型
+│   ├── course.js                  # 课程模型与计数器字段
+│   ├── like.js                    # 用户点赞关系模型
+│   ├── setting.js                 # 单例系统设置模型
+│   └── user.js                    # 用户、密码加密与角色模型
+├── routes/
+│   ├── admin/                     # 管理员接口
+│   ├── articles.js                # 前台文章接口
+│   ├── auth.js                    # 前台注册与登录
+│   ├── categories.js              # 前台分类接口
+│   ├── chapters.js                # 前台章节接口
+│   ├── courses.js                 # 前台课程接口
+│   ├── index.js                   # 首页聚合接口
+│   ├── likes.js                   # 点赞接口
+│   ├── search.js                  # 课程搜索
+│   ├── settings.js                # 站点设置查询
+│   ├── uploads.js                 # COS 图片上传
+│   └── users.js                   # 用户中心
+├── seeders/                       # 开发种子数据
+├── test/                          # Node.js 内置测试
 ├── utils/
-│   ├── pagination.js           # 分页参数计算工具（currentPage/pageSize/offset）
-│   └── responses.js            # success / failure 统一响应封装（支持多错误类型 → 状态码映射）
-├── migrations/                 # Sequelize 数据库迁移（7 张表 + 索引 + 唯一约束）
-├── seeders/                    # 种子数据（6 用户 / 6 分类 / 14 课程 / 62 章节 / 15 文章 / 31 点赞 / 1 设置）
-├── .env.example                # 环境变量模板
-├── eslint.config.js            # ESLint 配置
+│   ├── cache.js                   # 缓存键、cache-aside 与业务失效规则
+│   ├── cos.js                     # COS 上传、删除与文件命名
+│   ├── pagination.js              # 安全分页参数解析
+│   ├── redis.js                   # Redis 底层连接和原子读写
+│   ├── responses.js               # 统一成功和失败响应
+│   └── routes.js                  # 异步路由、字段白名单、资源查询和分页
+├── docker-compose.yml             # 本地 MySQL 与 Redis
+├── .env.example                   # 环境变量示例
 └── package.json
 ```
 
+## 复用模块设计
+
+重构后的路由只保留领域逻辑，通用机制集中在少量高复用模块中：
+
+| 模块                          | 统一处理的逻辑                                                          |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| `middlewares/auth.js`         | Bearer Token 提取、HS256 验签、前台用户 ID 注入、管理员存在性与角色检查 |
+| `middlewares/image-upload.js` | Multer 内存存储、MIME 白名单、单文件与 10 MB 限制、Promise 化解析       |
+| `utils/routes.js`             | 异步异常响应、请求字段白名单、资源 404、Sequelize 标准分页              |
+| `utils/cache.js`              | 缓存键命名、cache-aside、精确键/模式失效、课程相关缓存联动清理          |
+| `utils/redis.js`              | Redis 单例连接、JSON 序列化、原子 `SET EX`、批量删除                    |
+| `utils/cos.js`                | COS 配置检查、唯一文件名、上传、删除与错误转换                          |
+| `utils/responses.js`          | 成功响应以及 Sequelize、JWT、Multer、HTTP 错误映射                      |
+
+每个异步路由通过 `asyncRoute` 进入统一错误处理；写接口通过 `pickFields` 明确允许字段；分页列表通过 `paginate` 返回一致结构。这样错误状态、分页规则和字段过滤只需在一个位置维护。
+
 ## 快速开始
 
-### 前置要求
+### 环境要求
 
-- Node.js >= 18
-- MySQL >= 8
+- Node.js 18 或更高版本
 - npm
+- MySQL 8
+- Redis 7（兼容版本也可）
 
-### 安装
+项目当前通过 `npx sequelize-cli` 执行数据库命令，首次运行时 `npx` 可能需要下载 Sequelize CLI。
+
+### 1. 安装依赖
 
 ```bash
-# 1. 克隆项目
-git clone <repo-url>
-cd clwy-api
-
-# 2. 安装依赖
 npm install
+```
 
-# 3. 配置环境变量
+### 2. 启动本地基础服务
+
+可以使用项目提供的 Docker Compose 启动 MySQL 和 Redis：
+
+```bash
+docker compose up -d mysql redis
+```
+
+`docker-compose.yml` 面向本地开发，会把 `3306` 和 `6379` 映射到宿主机。不要原样用于公网生产环境。
+
+### 3. 配置环境变量
+
+```bash
 cp .env.example .env
-# 编辑 .env，配置端口、JWT 密钥和数据库密码
-# SECRET_KEY 生成：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-# 4. （可选）检查 config/config.json 中的数据库连接信息
-# 如果 .env 中已设置 DB_PASSWORD，则 config.json 中的 password 将被覆盖
-# 一般只需配置 .env 即可，无需修改 config.json
+至少需要配置数据库连接、Redis 地址和 JWT 密钥。可以使用下面的命令生成 JWT 密钥：
 
-# 5. 创建数据库
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### 4. 初始化数据库
+
+```bash
+# 创建数据库
 npx sequelize-cli db:create
 
-# 6. 运行迁移（建表）
+# 执行全部迁移
 npx sequelize-cli db:migrate
 
-# 7. （可选）填充种子数据
+# 可选：写入开发种子数据
 npx sequelize-cli db:seed:all
-
-# 8. 启动开发服务器
-npm start
 ```
 
-### 启动
+最新迁移会为课程、章节、点赞和附件关系添加数据库外键。已有数据库在迁移前应先确认不存在孤儿数据。
+
+### 5. 启动服务
 
 ```bash
 npm start
-# 默认监听 http://localhost:3000
-# 健康检查：GET http://localhost:3000/
 ```
 
-## API 文档
+默认地址：`http://localhost:3000`。`GET /` 是首页业务接口，不是独立健康检查接口，它依赖 MySQL 和 Redis 可用。
 
-### 认证方式
+## 环境变量
 
-**前台用户接口**（`/users/*`、`/likes/*`）需在请求头中携带 Bearer Token：
+| 变量                    | 必填     | 默认值                   | 说明                                  |
+| ----------------------- | -------- | ------------------------ | ------------------------------------- |
+| `PORT`                  | 否       | `3000`                   | HTTP 服务端口                         |
+| `NODE_ENV`              | 否       | `development`            | `development`、`test` 或 `production` |
+| `SECRET_KEY`            | 是       | 无                       | JWT 签名密钥                          |
+| `JWT_EXPIRES_IN`        | 否       | 前台 `7d`，后台 `1h`     | 设置后前后台 Token 共用该有效期       |
+| `DB_USERNAME`           | 否       | `root`                   | MySQL 用户名                          |
+| `DB_PASSWORD`           | 生产必填 | `null`                   | MySQL 密码                            |
+| `DB_DATABASE`           | 否       | 按环境选择               | 数据库名                              |
+| `DB_HOST`               | 否       | `127.0.0.1`              | MySQL 主机                            |
+| `REDIS_URL`             | 否       | `redis://localhost:6379` | Redis 连接地址                        |
+| `COS_ACCESS_KEY_ID`     | 上传必填 | 无                       | 腾讯云 COS SecretId                   |
+| `COS_ACCESS_KEY_SECRET` | 上传必填 | 无                       | 腾讯云 COS SecretKey                  |
+| `COS_BUCKET`            | 上传必填 | 无                       | COS Bucket 名称                       |
+| `COS_REGION`            | 上传必填 | 无                       | COS 地域，例如 `ap-shanghai`          |
 
-```
+## 身份认证
+
+需要认证的接口使用 Bearer Token：
+
+```http
 Authorization: Bearer <token>
 ```
 
-Token 通过 `POST /auth/sign_in` 获取。
+- 前台 Token：通过 `POST /auth/sign_in` 获取。
+- 管理员 Token：通过 `POST /admin/auth/sign_in` 获取，用户角色必须为 `100`。
+- User 模型默认查询不包含密码；登录和密码验证必须显式使用 `withPassword` scope。
+- 所有用户响应通过安全序列化移除密码哈希。
+- 前台 `/auth` 路由整体限制为每个 IP 15 分钟最多 20 次请求。
+- 管理员登录限制为每个 IP 15 分钟最多 10 次请求。
 
-**管理员接口**（`/admin/*`）同样使用 Bearer Token，需管理员角色（role=100）：
+## API 路由
 
-```
-Authorization: Bearer <token>
-```
+### 公开接口
 
-Token 通过 `POST /admin/auth/sign_in` 获取。
+| 方法 | 路径                   | 说明                                   |
+| ---- | ---------------------- | -------------------------------------- |
+| GET  | `/`                    | 首页推荐、人气和入门课程               |
+| GET  | `/categories`          | 分类列表                               |
+| GET  | `/courses?categoryId=` | 指定分类下的课程列表                   |
+| GET  | `/courses/:id`         | 课程、分类、讲师和章节详情             |
+| GET  | `/chapters/:id`        | 章节、课程、讲师和同课程章节           |
+| GET  | `/articles`            | 文章列表                               |
+| GET  | `/articles/:id`        | 文章详情                               |
+| GET  | `/settings`            | 站点设置                               |
+| GET  | `/search?name=`        | 按名称搜索课程；不传名称时返回全部课程 |
+| POST | `/auth/sign_up`        | 用户注册                               |
+| POST | `/auth/sign_in`        | 用户登录                               |
 
-### 前台公开路由
+### 前台认证接口
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/` | 首页（推荐课程、人气课程、入门课程） |
-| GET | `/categories` | 分类列表（按 rank 排序） |
-| GET | `/courses` | 课程列表（必填 categoryId，分页） |
-| GET | `/courses/:id` | 课程详情（关联分类、章节、讲师） |
-| GET | `/chapters/:id` | 章节详情（关联课程+讲师+同课程章节） |
-| GET | `/articles` | 文章列表（分页） |
-| GET | `/articles/:id` | 文章详情 |
-| GET | `/settings` | 系统信息（站点名称等） |
-| GET | `/search?name=` | 搜索课程（名称模糊匹配，分页） |
-| POST | `/auth/sign_up` | 用户注册 |
-| POST | `/auth/sign_in` | 用户登录（限流 20 次/15 分钟） |
+| 方法 | 路径             | 说明                                 |
+| ---- | ---------------- | ------------------------------------ |
+| GET  | `/users/me`      | 当前用户资料                         |
+| PUT  | `/users/info`    | 更新头像、昵称、性别、公司和简介     |
+| PUT  | `/users/account` | 验证当前密码后更新邮箱、用户名或密码 |
+| POST | `/likes`         | 切换课程点赞状态                     |
+| GET  | `/likes`         | 当前用户点赞的课程列表               |
+| POST | `/uploads/oss`   | 上传一张 JPG/PNG 图片到 COS          |
 
-### 前台需认证路由
-
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/users/me` | 当前用户信息 |
-| PUT | `/users/info` | 更新用户资料（昵称/性别/公司/简介/头像） |
-| PUT | `/users/account` | 更新账户信息（邮箱/用户名/密码） |
-| POST | `/likes` | 点赞/取消赞（自动切换） |
-| GET | `/likes` | 用户点赞的课程列表（分页） |
-
-#### 用户注册
-
-```
-POST /auth/sign_up
-```
-
-请求体：
-
-```json
-{
-  "email": "user@example.com",
-  "username": "john",
-  "password": "123456",
-  "nickname": "约翰"
-}
-```
-
-成功响应（201）：
-
-```json
-{
-  "status": 201,
-  "message": "创建用户成功",
-  "data": {
-    "user": { "email": "user@example.com", "username": "john", "nickname": "约翰", "gender": 0, "role": 0 }
-  }
-}
-```
-
-**注意**：密码在 Model 层自动加密存储（bcryptjs），注册响应中已排除 `password` 字段。
-
-#### 用户登录
-
-```
-POST /auth/sign_in
-```
-
-请求体：
-
-```json
-{
-  "login": "user@example.com",
-  "password": "123456"
-}
-```
-
-`login` 支持邮箱或用户名两种方式。限流：同一 IP 每 15 分钟最多 20 次。
-
-成功响应：
-
-```json
-{
-  "status": 200,
-  "message": "登陆成功。",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs..."
-  }
-}
-```
-
-#### 更新账户信息
-
-```
-PUT /users/account
-```
-
-请求体：
-
-```json
-{
-  "email": "new@example.com",
-  "username": "newuser",
-  "currentPassword": "old123456",
-  "password": "new123456",
-  "passwordConfirmation": "new123456"
-}
-```
-
-需要验证当前密码才能修改。密码不一致或当前密码错误时返回 400。
+点赞切换会在事务中锁定课程行，确保 Like 记录与 `likesCount` 在并发请求下保持一致。
 
 ### 管理员认证
 
-| 方法 | 路径 | 描述 | 限流 |
-|------|------|------|------|
-| POST | `/admin/auth/sign_in` | 管理员登录 | 15 分钟 10 次 |
+| 方法 | 路径                  | 说明       |
+| ---- | --------------------- | ---------- |
+| POST | `/admin/auth/sign_in` | 管理员登录 |
 
-请求体：
+### 管理员文章接口
 
-```json
-{
-  "login": "邮箱或用户名",
-  "password": "密码"
-}
-```
+| 方法 | 路径                           | 说明                                   |
+| ---- | ------------------------------ | -------------------------------------- |
+| GET  | `/admin/articles`              | 文章列表；支持 `title`、`deleted` 筛选 |
+| GET  | `/admin/articles/:id`          | 未删除文章详情                         |
+| POST | `/admin/articles`              | 创建文章                               |
+| PUT  | `/admin/articles/:id`          | 更新文章                               |
+| POST | `/admin/articles/delete`       | 按请求体 `id` 软删除文章               |
+| POST | `/admin/articles/restore`      | 按请求体 `id` 恢复文章                 |
+| POST | `/admin/articles/force_delete` | 按请求体 `id` 彻底删除文章             |
 
-成功响应：
+### 管理员分类接口
 
-```json
-{
-  "status": 200,
-  "message": "登录成功。",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs..."
-  }
-}
-```
+| 方法   | 路径                    | 说明                       |
+| ------ | ----------------------- | -------------------------- |
+| GET    | `/admin/categories`     | 分类列表；支持 `name` 筛选 |
+| GET    | `/admin/categories/:id` | 分类详情                   |
+| POST   | `/admin/categories`     | 创建分类                   |
+| PUT    | `/admin/categories/:id` | 更新分类                   |
+| DELETE | `/admin/categories/:id` | 删除没有课程的分类         |
 
-### 管理员路由
+### 管理员课程接口
 
-所有管理员接口需携带 Bearer Token，且用户角色必须为管理员（role=100）。
+| 方法   | 路径                 | 说明                 |
+| ------ | -------------------- | -------------------- |
+| GET    | `/admin/courses`     | 课程列表和多条件筛选 |
+| GET    | `/admin/courses/:id` | 课程详情             |
+| POST   | `/admin/courses`     | 创建课程             |
+| PUT    | `/admin/courses/:id` | 更新课程             |
+| DELETE | `/admin/courses/:id` | 删除没有章节的课程   |
 
-#### 文章管理
+课程列表支持 `categoryId`、`userId`、`name`、`recommended` 和 `introductory` 参数。
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/articles` | 文章列表（支持 title 模糊搜索） |
-| GET | `/admin/articles/:id` | 文章详情 |
-| POST | `/admin/articles` | 创建文章 |
-| PUT | `/admin/articles/:id` | 更新文章 |
-| DELETE | `/admin/articles/:id` | 删除文章 |
+### 管理员章节接口
 
-#### 分类管理
+| 方法   | 路径                        | 说明                                         |
+| ------ | --------------------------- | -------------------------------------------- |
+| GET    | `/admin/chapters?courseId=` | 章节列表；`courseId` 必填，支持 `title` 筛选 |
+| GET    | `/admin/chapters/:id`       | 章节详情                                     |
+| POST   | `/admin/chapters`           | 创建章节并增加课程章节数                     |
+| PUT    | `/admin/chapters/:id`       | 更新章节；跨课程移动时同步两侧章节数         |
+| DELETE | `/admin/chapters/:id`       | 删除章节并减少课程章节数                     |
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/categories` | 分类列表（支持 name 模糊搜索） |
-| GET | `/admin/categories/:id` | 分类详情 |
-| POST | `/admin/categories` | 创建分类 |
-| PUT | `/admin/categories/:id` | 更新分类 |
-| DELETE | `/admin/categories/:id` | 删除分类（有课程关联时禁止） |
+### 管理员用户接口
 
-#### 课程管理
+| 方法   | 路径               | 说明                                       |
+| ------ | ------------------ | ------------------------------------------ |
+| GET    | `/admin/users`     | 用户列表；支持邮箱、用户名、昵称和角色筛选 |
+| GET    | `/admin/users/me`  | 当前管理员资料                             |
+| GET    | `/admin/users/:id` | 用户详情                                   |
+| POST   | `/admin/users`     | 创建用户                                   |
+| PUT    | `/admin/users/:id` | 更新用户                                   |
+| DELETE | `/admin/users/:id` | 删除用户；禁止自删和删除最后一位管理员     |
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/courses` | 课程列表（支持 categoryId/userId/name/recommended/introductory 筛选） |
-| GET | `/admin/courses/:id` | 课程详情（含分类和用户关联） |
-| POST | `/admin/courses` | 创建课程 |
-| PUT | `/admin/courses/:id` | 更新课程 |
-| DELETE | `/admin/courses/:id` | 删除课程（有章节关联时禁止） |
+### 管理员设置、统计和附件接口
 
-#### 章节管理
+| 方法   | 路径                        | 说明                             |
+| ------ | --------------------------- | -------------------------------- |
+| GET    | `/admin/settings`           | 系统设置                         |
+| PUT    | `/admin/settings`           | 更新系统设置                     |
+| GET    | `/admin/settings/flush-all` | 清空当前 Redis 实例全部缓存      |
+| GET    | `/admin/charts/gender`      | 用户性别分布                     |
+| GET    | `/admin/charts/user`        | 每月注册用户数                   |
+| POST   | `/admin/uploads/oss`        | 以管理员身份上传图片             |
+| GET    | `/admin/attachments`        | 附件列表；支持原文件名筛选       |
+| POST   | `/admin/attachments`        | 占位接口，实际创建请使用上传接口 |
+| DELETE | `/admin/attachments/:id`    | 删除 COS 文件和附件记录          |
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/chapters` | 章节列表（必填 courseId，支持 title 模糊搜索） |
-| GET | `/admin/chapters/:id` | 章节详情（含课程关联） |
-| POST | `/admin/chapters` | 创建章节 |
-| PUT | `/admin/chapters/:id` | 更新章节 |
-| DELETE | `/admin/chapters/:id` | 删除章节 |
+## 分页参数
 
-#### 用户管理（管理员端）
+支持分页的接口统一接受以下查询参数：
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/users` | 用户列表（支持 email/username/nickname/role 筛选） |
-| GET | `/admin/users/:id` | 用户详情 |
-| POST | `/admin/users` | 创建用户 |
-| PUT | `/admin/users/:id` | 更新用户 |
-| DELETE | `/admin/users/:id` | 删除用户 |
+| 参数                    | 默认值 | 限制                          | 说明     |
+| ----------------------- | ------ | ----------------------------- | -------- |
+| `currentPage` 或 `page` | `1`    | 正安全整数                    | 当前页   |
+| `pageSize`              | `10`   | 正安全整数，最大按 `100` 执行 | 每页数量 |
 
-**安全说明**：用户列表和详情接口返回的数据中已排除 `password` 字段。
+负数、小数、非数字、`Infinity` 以及导致 offset 溢出的值会返回 `400`。
 
-#### 系统设置
-
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/settings` | 查询系统设置（单例） |
-| PUT | `/admin/settings` | 更新系统设置 |
-
-#### 统计图表
-
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/admin/charts/gender` | 用户性别分布统计（男/女/未选择） |
-| GET | `/admin/charts/user` | 每月用户注册数量 |
-
-## 列表接口通用参数
-
-| 参数 | 类型 | 默认值 | 最大 | 描述 |
-|------|------|--------|------|------|
-| `currentPage` | number | 1 | — | 当前页码 |
-| `pageSize` | number | 10 | 100 | 每页条数 |
-
-所有列表接口统一使用 `findAndCountAll`，返回分页信息：
+分页响应示例：
 
 ```json
 {
   "status": 200,
   "message": "查询成功。",
   "data": {
-    "items": [...],
+    "courses": [],
     "pagination": {
-      "total": 100,
+      "total": 0,
       "currentPage": 1,
       "pageSize": 10
     }
@@ -361,9 +325,27 @@ PUT /users/account
 }
 ```
 
-## 统一响应格式
+## 图片上传
 
-### 成功响应
+上传接口接收 `multipart/form-data`，文件字段名为 `file`：
+
+```bash
+curl -X POST http://localhost:3000/uploads/oss \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@avatar.png"
+```
+
+限制：
+
+- MIME 类型仅允许 `image/jpeg` 和 `image/png`
+- 每次只能上传一个文件
+- 文件大小上限为 10 MB
+- 文件成功写入 COS 后会在 `Attachments` 表保存记录
+- 如果附件记录写入失败，会尝试删除刚上传的 COS 对象，避免孤儿文件
+
+## 统一响应
+
+成功响应：
 
 ```json
 {
@@ -373,112 +355,125 @@ PUT /users/account
 }
 ```
 
-创建操作返回 201：
-
-```json
-{
-  "status": 201,
-  "message": "创建成功。",
-  "data": {}
-}
-```
-
-### 错误响应
-
-| 状态码 | 含义 |
-|--------|------|
-| 400 | 请求参数错误（Sequelize 校验 / BadRequest） |
-| 401 | 认证失败（Token 缺失 / 无效 / 过期 / 无权限） |
-| 404 | 资源不存在 |
-| 409 | 操作冲突（唯一约束 / 外键约束 / 关联数据存在） |
-| 429 | 请求过于频繁（限流触发） |
-| 500 | 服务器内部错误（开发环境下返回 error.message） |
+失败响应：
 
 ```json
 {
   "status": 400,
   "message": "请求参数错误。",
-  "errors": ["邮箱必须填写。"]
+  "errors": ["参数说明"]
 }
 ```
+
+| 状态码 | 场景                             |
+| ------ | -------------------------------- |
+| `400`  | 参数或模型校验失败               |
+| `401`  | Token 缺失、无效、过期或权限不足 |
+| `403`  | 已认证但操作被禁止               |
+| `404`  | 资源不存在                       |
+| `409`  | 唯一键、外键或业务状态冲突       |
+| `429`  | 触发限流                         |
+| `500`  | 未识别的服务器错误               |
+| `502`  | COS 等上游服务操作失败           |
 
 ## 数据模型
 
 ```mermaid
 erDiagram
-    User ||--o{ Like : likes
-    User ||--o{ Course : creates
-    Category ||--o{ Course : belongs-to
-    Course ||--o{ Chapter : has
-    Course ||--o{ Like : liked
-    User ||--o{ Like : liked-by
+    Category ||--o{ Course : contains
+    User ||--o{ Course : teaches
+    Course ||--o{ Chapter : contains
+    User ||--o{ Like : creates
+    Course ||--o{ Like : receives
+    User ||--o{ Attachment : uploads
 ```
+
+主要完整性规则：
+
+- `Users.email` 和 `Users.username` 唯一。
+- `Categories.name` 唯一。
+- `Likes(courseId, userId)` 使用复合唯一索引。
+- 删除用户或课程时，其点赞记录由数据库级联删除。
+- 分类、课程、章节和附件的其他父子关系使用限制删除。
+- `Article` 使用 `deletedAt` 实现软删除。
+- `Setting` 在应用层保持单例。
 
 ### 枚举值
 
-**用户角色**
+| 字段          | 值    | 含义     |
+| ------------- | ----- | -------- |
+| `User.role`   | `0`   | 普通用户 |
+| `User.role`   | `100` | 管理员   |
+| `User.gender` | `0`   | 未选择   |
+| `User.gender` | `1`   | 男性     |
+| `User.gender` | `2`   | 女性     |
 
-| 值 | 角色 |
-|----|------|
-| 0 | 普通用户 |
-| 100 | 管理员 |
+## 缓存策略
 
-**用户性别**
+Redis 用于缓存首页、分类、课程、章节、文章、设置和用户查询结果。
 
-| 值 | 性别 |
-|----|------|
-| 0 | 未选择 |
-| 1 | 男性 |
-| 2 | 女性 |
+- 首页缓存默认有效期为 30 分钟。
+- 其他缓存主要通过后台写操作主动失效。
+- 公共讲师资料与当前用户私有资料使用不同缓存命名空间。
+- 完整课程详情与章节页课程摘要使用不同缓存键，避免不同数据形状互相覆盖。
+- 课程写操作会清理课程列表、课程详情和首页缓存。
+- 章节写操作会清理章节、课程列表、课程详情和首页缓存。
+- 点赞操作会清理课程列表、课程详情和首页缓存。
+- 管理员可通过 `GET /admin/settings/flush-all` 清空当前 Redis 实例；如果 Redis 与其他系统共用，请谨慎使用。
 
-### 数据库索引
+## 种子数据
 
-| 表 | 索引 | 类型 |
-|----|------|------|
-| `Categories` | `name` | 唯一索引 |
-| `Courses` | `categoryId` | 普通索引 |
-| `Courses` | `userId` | 普通索引 |
-| `Users` | `email` | 唯一索引 |
-| `Users` | `username` | 唯一索引 |
-| `Users` | `role` | 普通索引 |
-| `Likes` | `(courseId, userId)` | 复合唯一索引 |
+当前种子文件包含：
 
-## 安全特性
+| 数据     | 数量 |
+| -------- | ---: |
+| 用户     |    6 |
+| 分类     |    6 |
+| 课程     |   14 |
+| 章节     |   67 |
+| 文章     |   15 |
+| 点赞关系 |   32 |
+| 系统设置 |    1 |
 
-- [x] **双认证体系** — 用户认证 (`user-auth`) 和 管理员认证 (`admin-auth`) 分离
-- [x] **JWT 算法强制校验** — `jwt.verify` 仅接受 `HS256` 算法，防止算法混淆攻击
-- [x] **JWT 身份认证** — Bearer Token 标准格式，过期时间通过环境变量配置
-- [x] **密码加密存储** — bcryptjs 加盐哈希，查询结果自动排除 password 字段
-- [x] **登录限流** — 前台 `/auth` 15 分钟 20 次，后台 `/admin/auth` 15 分钟 10 次
-- [x] **账号枚举防护** — 登录接口统一错误消息，不区分"用户不存在"和"密码错误"
-- [x] **白名单输入过滤** — 所有写操作经 `filterBody` 过滤字段，防止 mass assignment
-- [x] **管理员提权防护** — 更新用户时禁止传 `role` 字段，改密码需验证当前管理员密码
-- [x] **Sequelize 参数化查询** — 防止 SQL 注入
-- [x] **引用完整性** — 外键关联校验，含删除保护（有子记录时禁止删除）
-- [x] **事务保护** — 点赞/删除等 check-then-act 操作在事务中执行，防止竞态
-- [x] **复合唯一索引** — Like 表 `(courseId, userId)` 防重复点赞
-- [x] **统一错误处理** — 不泄漏敏感信息，支持 SequelizeUniqueConstraintError → 409 等映射
-- [x] **分页参数上限** — `pageSize` 最大 100
-- [x] **HTTP 安全头** — Helmet 中间件提供 CSP、HSTS、X-Frame-Options 等安全头
-- [x] **CORS 受限** — 仅允许已知前端来源（localhost:5173 / localhost:3000）
+种子数据依赖自增 ID 从空数据库开始分配，建议仅用于全新开发数据库。
 
-## 环境变量
+## 测试与代码质量
 
-| 变量名 | 必填 | 默认值 | 描述 |
-|--------|------|--------|------|
-| `SECRET_KEY` | 是 | — | JWT 签名密钥（32 字节 hex） |
-| `JWT_EXPIRES_IN` | 否 | 前台 `7d`，后台 `1h` | JWT Token 过期时间 |
-| `PORT` | 否 | `3000` | 服务器端口 |
-| `NODE_ENV` | 否 | `development` | 运行环境：development / production / test |
-| `DATABASE_URL` | 否 | — | 数据库连接 URL（需 config.json 开启 use_env_variable） |
-| `DB_PASSWORD` | 否 | config.json 中的值 | 数据库密码（优先级高于 config.json） |
+```bash
+# 运行测试
+npm test
 
-## 脚本命令
+# ESLint 检查
+npm run lint
 
-| 命令 | 描述 |
-|------|------|
-| `npm start` | 启动开发服务器（nodemon 热重载） |
-| `npm run lint` | ESLint 检查 |
-| `npm run lint:fix` | ESLint 自动修复 |
-| `npm run format` | Prettier 格式化 |
-| `npm run format:check` | Prettier 格式检查 |
+# 自动修复可修复的 ESLint 问题
+npm run lint:fix
+
+# 检查格式
+npm run format:check
+
+# 格式化项目
+npm run format
+```
+
+当前共有 14 个测试，覆盖：
+
+- 分页默认值、上限、非法参数和 offset 溢出
+- 请求字段白名单
+- 资源查询与统一 404
+- 标准分页数据结构
+- 异步路由错误响应
+- Bearer Token 提取和 HS256 验签
+- 不同数据形状的缓存键隔离
+- 密码参数错误和用户安全序列化
+- Sequelize 显式关联外键
+
+## 部署注意事项
+
+- 必须替换 `.env.example` 中的示例密钥和密码。
+- 不要把 `.env`、COS 密钥或数据库数据目录提交到版本库。
+- 生产环境应使用受限数据库账号，不要使用 MySQL root 用户。
+- 生产 Redis 应启用访问控制并限制网络访问。
+- `docker-compose.yml` 仅用于本地开发。
+- 部署前需在 `app.js` 中配置生产 CORS 来源；当前来源白名单不是通过环境变量读取。
+- 建议在反向代理或负载均衡层配置 TLS、请求体限制和可信代理设置。

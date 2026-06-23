@@ -1,8 +1,9 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+/** 写入前台文章示例数据。 @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
+    // 固定时间便于文章列表、归档和排序功能稳定演示。
     const articles = [
       {
         title: '深入理解 JavaScript 闭包',
@@ -77,7 +78,7 @@ module.exports = {
       {
         title: 'HTTPS 与 SSL/TLS 协议详解',
         content:
-          'HTTPS 是现代 Web 安全的基础。理解其工作原理有助于更好地配置和排错。\n\n## TLS 握手过程\n\n1. ClientHello：客户端发送支持的加密套件\n2. ServerHello：服务端选择加密套件并发送证书\n3. 证书验证：客户端验证服务端证书有效性\n4. 密钥交换：使用非对称加密交换对称密钥\n5. 加密通信：开始使用对称加密传输数据\n\n## 证书类型\n\n- DV（域名验证）：仅验证域名所有权\n- OV（组织验证）：验证企业信息\n- EV（扩展验证）：显示绿色地址栏\n\n## 最佳实践\n\n- 使用 Let\'s Encrypt 免费证书\n- 启用 HSTS 强制 HTTPS\n- 配置 OSCP Stapling 提升性能\n- 定期检查证书到期时间',
+          "HTTPS 是现代 Web 安全的基础。理解其工作原理有助于更好地配置和排错。\n\n## TLS 握手过程\n\n1. ClientHello：客户端发送支持的加密套件\n2. ServerHello：服务端选择加密套件并发送证书\n3. 证书验证：客户端验证服务端证书有效性\n4. 密钥交换：使用非对称加密交换对称密钥\n5. 加密通信：开始使用对称加密传输数据\n\n## 证书类型\n\n- DV（域名验证）：仅验证域名所有权\n- OV（组织验证）：验证企业信息\n- EV（扩展验证）：显示绿色地址栏\n\n## 最佳实践\n\n- 使用 Let's Encrypt 免费证书\n- 启用 HSTS 强制 HTTPS\n- 配置 OSCP Stapling 提升性能\n- 定期检查证书到期时间",
         createdAt: new Date('2026-05-01'),
         updatedAt: new Date('2026-05-05'),
       },
@@ -114,7 +115,7 @@ module.exports = {
     await queryInterface.bulkInsert('Articles', articles, {});
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.bulkDelete('Articles', null, {});
   },
 };

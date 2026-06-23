@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建课程章节表及课程目录查询索引。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // courseId 标识所属课程，rank 控制同课程内的章节顺序。
     await queryInterface.createTable('Chapters', {
       id: {
         allowNull: false,
@@ -41,7 +43,7 @@ module.exports = {
       fields: ['courseId'],
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Chapters');
   },
 };

@@ -1,82 +1,48 @@
+/**
+ * 前台文章路由。
+ */
 const express = require('express');
-const router = express.Router();
 const { Article } = require('../models');
-const { success, failure } = require('../utils/responses');
-const createError = require('http-errors');
+const { cacheKeys, remember } = require('../utils/cache');
 const { getPagination } = require('../utils/pagination');
-const { setKey, getKey } = require('../utils/redis');
+const { success } = require('../utils/responses');
+const { asyncRoute, findByPkOrFail, paginate } = require('../utils/routes');
 
-/**
- * 查询文章列表
- *
- * 分页返回所有文章（排除 content 字段以减少传输量），
- * 按 id 降序排列（最新优先）。
- *
- * GET /articles?currentPage=&pageSize=
- */
-router.get('/', async function (req, res) {
-  try {
-    const query = req.query;
-    const { currentPage, pageSize, offset } = getPagination(query);
+const router = express.Router();
 
-    // 定义带有 [当前页码] 和 [每页条数] 的 cacheKey 作为缓存的键
-    const cacheKey = `articles:${currentPage}:${pageSize}`;
-    const data = await getKey(cacheKey);
-    if (data) return success(res, '查询文章列表成功。', data);
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    // 先规范化分页参数，保证等价请求落到同一个缓存键。
+    const { currentPage, pageSize } = getPagination(req.query);
+    const key = cacheKeys.articleList(currentPage, pageSize);
+    // 列表不读取正文，降低数据库与网络传输量。
+    const data = await remember(key, () =>
+      paginate(
+        Article,
+        req.query,
+        {
+          attributes: { exclude: ['content'] },
+          order: [['id', 'DESC']],
+        },
+        'articles',
+      ),
+    );
 
-    const condition = {
-      attributes: { exclude: ['content'] },
-      order: [['id', 'DESC']],
-      limit: pageSize,
-      offset,
-    };
+    success(res, '查询文章列表成功。', data);
+  }),
+);
 
-    const { count, rows } = await Article.findAndCountAll(condition);
-    await setKey(cacheKey, {
-      articles: rows,
-      pagination: {
-        total: count,
-        currentPage,
-        pageSize,
-      },
-    });
-    success(res, '查询文章列表成功。', {
-      articles: rows,
-      pagination: {
-        total: count,
-        currentPage,
-        pageSize,
-      },
-    });
-  } catch (error) {
-    failure(res, error);
-  }
-});
-
-/**
- * 查询文章详情
- *
- * 返回完整文章内容（含 content 字段）。
- *
- * GET /articles/:id
- */
-router.get('/:id', async function (req, res) {
-  try {
-    const { id } = req.params;
-
-    let article = await getKey(`article:${id}`);
-    if (!article) {
-      article = await Article.findByPk(id);
-      if (!article) {
-        throw createError(404, `ID: ${id}的文章未找到。`);
-      }
-      await setKey(`article:${id}`, article);
-    }
+router.get(
+  '/:id',
+  asyncRoute(async (req, res) => {
+    // 详情包含完整正文，并按文章 ID 独立缓存。
+    const article = await remember(cacheKeys.article(req.params.id), () =>
+      findByPkOrFail(Article, req.params.id, {}, '文章'),
+    );
 
     success(res, '查询文章成功。', { article });
-  } catch (error) {
-    failure(res, error);
-  }
-});
+  }),
+);
 
 module.exports = router;

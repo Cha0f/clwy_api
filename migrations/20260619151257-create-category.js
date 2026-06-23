@@ -1,7 +1,9 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
+/** 创建课程分类表及名称唯一索引。 @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // rank 保存人工排序权重，数值越小越靠前。
     await queryInterface.createTable('Categories', {
       id: {
         allowNull: false,
@@ -32,7 +34,7 @@ module.exports = {
       unique: true,
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Categories');
   },
 };

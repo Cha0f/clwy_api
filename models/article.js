@@ -7,11 +7,8 @@ const { Model } = require('sequelize');
  * 简单的标题 + 内容两字段文章，前台列表页排除 content 字段以减小传输量。
  */
 module.exports = (sequelize, DataTypes) => {
-  class Article extends Model {
-    static associate(models) {
-      // define association here
-    }
-  }
+  // Article 当前没有模型关联，直接继承 Sequelize Model 即可。
+  class Article extends Model {}
   Article.init(
     {
       title: {

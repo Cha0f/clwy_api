@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
   class Chapter extends Model {
     static associate(models) {
       // 章节属于一门课程
-      models.Chapter.belongsTo(models.Course, { as: 'course' });
+      models.Chapter.belongsTo(models.Course, { as: 'course', foreignKey: 'courseId' });
     }
   }
   Chapter.init(
