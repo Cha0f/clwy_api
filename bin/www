@@ -8,10 +8,11 @@
  */
 const debug = require('debug')('clwy-api:server');
 const http = require('http');
+const env = require('../config/env');
 const app = require('../app');
 
 // 环境变量既可以是数字端口，也可以是命名管道；默认监听 3000。
-const port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(env.port);
 // 把规范化端口写回 Express，供其他模块通过 app.get('port') 读取。
 app.set('port', port);
 

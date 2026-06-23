@@ -7,6 +7,7 @@ const createError = require('http-errors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+const env = require('../config/env');
 const { User } = require('../models');
 const { asyncRoute } = require('../utils/routes');
 
@@ -33,7 +34,7 @@ function getBearerToken(req) {
  */
 function verifyUserId(token) {
   // 固定 HS256，防止算法混淆。
-  const payload = jwt.verify(token, process.env.SECRET_KEY, { algorithms: ['HS256'] });
+  const payload = jwt.verify(token, env.jwt.secret, { algorithms: ['HS256'] });
   if (!payload.userId) {
     throw createError(401, 'Token无效。');
   }
@@ -67,8 +68,8 @@ async function authenticateCredentials(login, password) {
  * 使用固定 HS256 算法签发只包含 userId 的 Token。
  */
 function signUserToken(userId, defaultExpiresIn) {
-  return jwt.sign({ userId }, process.env.SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRES_IN || defaultExpiresIn,
+  return jwt.sign({ userId }, env.jwt.secret, {
+    expiresIn: env.jwt.expiresIn || defaultExpiresIn,
     algorithm: 'HS256',
   });
 }

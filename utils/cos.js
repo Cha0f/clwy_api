@@ -7,13 +7,14 @@
 const path = require('path');
 const createError = require('http-errors');
 const COS = require('cos-nodejs-sdk-v5');
+const env = require('../config/env');
 
 function getConfig() {
   const config = {
-    secretId: process.env.COS_ACCESS_KEY_ID,
-    secretKey: process.env.COS_ACCESS_KEY_SECRET,
-    bucket: process.env.COS_BUCKET,
-    region: process.env.COS_REGION,
+    secretId: env.cos.accessKeyId,
+    secretKey: env.cos.accessKeySecret,
+    bucket: env.cos.bucket,
+    region: env.cos.region,
   };
 
   // 四个配置缺少任意一个都无法构造合法请求。

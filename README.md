@@ -37,8 +37,9 @@ clwy-api/
 ├── app.js                         # Express 应用、中间件和路由挂载
 ├── bin/www                        # HTTP 服务启动入口
 ├── config/
-│   ├── config.js                  # Sequelize 多环境配置
-│   └── config.json                # Sequelize CLI 默认配置（保留文件）
+│   ├── config.js                  # Sequelize 多环境配置组装
+│   ├── config.json                # Sequelize CLI 默认配置（保留文件）
+│   └── env.js                     # 唯一 dotenv 入口与环境变量访问
 ├── middlewares/
 │   ├── auth.js                    # 前后台共用 JWT 认证
 │   └── image-upload.js            # Multer 图片解析与限制
@@ -86,6 +87,7 @@ clwy-api/
 
 | 模块                          | 统一处理的逻辑                                                          |
 | ----------------------------- | ----------------------------------------------------------------------- |
+| `config/env.js`               | 唯一加载 `.env`，集中提供端口、JWT、数据库、Redis 和 COS 配置           |
 | `middlewares/auth.js`         | Bearer Token 提取、HS256 验签、前台用户 ID 注入、管理员存在性与角色检查 |
 | `middlewares/image-upload.js` | Multer 内存存储、MIME 白名单、单文件与 10 MB 限制、Promise 化解析       |
 | `utils/routes.js`             | 异步异常响应、请求字段白名单、资源 404、Sequelize 标准分页              |
@@ -175,6 +177,14 @@ npm start
 | `COS_ACCESS_KEY_SECRET` | 上传必填 | 无                       | 腾讯云 COS SecretKey                  |
 | `COS_BUCKET`            | 上传必填 | 无                       | COS Bucket 名称                       |
 | `COS_REGION`            | 上传必填 | 无                       | COS 地域，例如 `ap-shanghai`          |
+
+环境变量由 `config/env.js` 统一加载：
+
+- 每个 Node.js 进程只执行一次 `dotenv.config()`。
+- `.env` 使用相对项目目录计算的绝对路径，不依赖启动命令所在目录。
+- Shell、Docker、PM2 等已经注入的进程变量优先于 `.env`。
+- Express、Sequelize CLI、JWT、Redis 和 COS 共用同一配置入口。
+- 配置通过 getter 读取，测试可以安全地临时覆盖 `process.env`。
 
 ## 身份认证
 
@@ -456,7 +466,7 @@ npm run format:check
 npm run format
 ```
 
-当前共有 14 个测试，覆盖：
+当前共有 15 个测试，覆盖：
 
 - 分页默认值、上限、非法参数和 offset 溢出
 - 请求字段白名单
@@ -464,6 +474,7 @@ npm run format
 - 标准分页数据结构
 - 异步路由错误响应
 - Bearer Token 提取和 HS256 验签
+- 环境变量 getter 和运行时覆盖
 - 不同数据形状的缓存键隔离
 - 密码参数错误和用户安全序列化
 - Sequelize 显式关联外键

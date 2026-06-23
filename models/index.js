@@ -8,22 +8,13 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const process = require('process');
-require('dotenv').config();
+const env = require('../config/env');
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.js')[env];
+const config = require('../config/config.js')[env.nodeEnv];
 const db = {};
 
-let sequelize;
-if (config.use_env_variable) {
-  // 通过环境变量获取数据库连接字符串（如 JAWSDB_URL）
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {
-  // 优先使用环境变量 DB_PASSWORD 覆盖 config.json 中的密码（避免硬编码）
-  const password = process.env.DB_PASSWORD || config.password;
-  sequelize = new Sequelize(config.database, config.username, password, config);
-}
+// config/config.js 已完成环境变量与默认值合并，这里只负责建立 Sequelize 实例。
+const sequelize = new Sequelize(config.database, config.username, config.password, config);
 
 // 自动加载 models/ 目录下所有模型文件
 fs.readdirSync(__dirname)

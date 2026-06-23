@@ -35,6 +35,8 @@ test('paginate 注入 limit/offset 并生成标准分页结构', async () => {
 });
 
 test('asyncRoute 使用统一格式返回业务异常', async () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'test';
   let statusCode;
   let responseBody;
   const response = {
@@ -50,11 +52,19 @@ test('asyncRoute 使用统一格式返回业务异常', async () => {
     throw createError(403, '没有权限。');
   });
 
-  await handler({}, response, () => {});
-  assert.equal(statusCode, 403);
-  assert.deepEqual(responseBody, {
-    status: 403,
-    message: '禁止访问。',
-    errors: ['没有权限。'],
-  });
+  try {
+    await handler({}, response, () => {});
+    assert.equal(statusCode, 403);
+    assert.deepEqual(responseBody, {
+      status: 403,
+      message: '禁止访问。',
+      errors: ['没有权限。'],
+    });
+  } finally {
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  }
 });

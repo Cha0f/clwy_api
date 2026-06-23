@@ -4,6 +4,7 @@
  * 本文件只负责连接和原子读写；业务缓存键与失效规则位于 cache.js。
  */
 const { createClient } = require('redis');
+const env = require('../config/env');
 
 let client;
 
@@ -17,7 +18,7 @@ async function redisClient() {
   }
 
   // 第一次调用或连接已关闭时重新创建客户端。
-  client = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  client = createClient({ url: env.redis.url });
   // 连接建立后的异步错误不会进入当前 Promise，因此单独监听并记录。
   client.on('error', (error) => console.error('Redis 连接失败:', error));
   // connect 完成后再把客户端交给调用方。

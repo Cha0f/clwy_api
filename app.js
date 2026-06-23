@@ -11,7 +11,6 @@ const logger = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
 
 const { adminAuth, userAuth } = require('./middlewares/auth');
 const { failure } = require('./utils/responses');

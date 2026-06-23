@@ -7,6 +7,7 @@
  */
 
 const createError = require('http-errors');
+const env = require('../config/env');
 
 /**
  * 请求成功
@@ -77,7 +78,7 @@ function failure(res, error) {
   }
 
   // 开发模式下将详细错误打印到控制台（便于调试）
-  if (process.env.NODE_ENV === 'development') {
+  if (env.nodeEnv === 'development') {
     console.error('错误详情:', error);
   }
 
