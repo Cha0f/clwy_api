@@ -11,6 +11,8 @@ const { setKey } = require('../utils/redis');
 
 const router = express.Router();
 
+// GET /captcha
+// @returns {Object} { captchaKey: "captcha:uuid", captchaData: "<svg>..." }
 router.get(
   '/',
   asyncRoute(async (req, res) => {

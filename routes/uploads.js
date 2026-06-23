@@ -13,6 +13,9 @@ const { asyncRoute } = require('../utils/routes');
 
 const router = express.Router();
 
+// POST /uploads/oss
+// @body {file} file - 图片文件（multipart/form-data，仅 JPG/PNG，单文件，最大 10MB）
+// @returns {string} url - 上传后的 COS URL
 router.post(
   '/oss',
   asyncRoute(async (req, res) => {

@@ -11,6 +11,7 @@ const { asyncRoute } = require('../utils/routes');
 
 const router = express.Router();
 
+// GET /
 router.get(
   '/',
   asyncRoute(async (req, res) => {

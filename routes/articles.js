@@ -10,6 +10,10 @@ const { asyncRoute, findByPkOrFail, paginate } = require('../utils/routes');
 
 const router = express.Router();
 
+// GET /articles?page=&pageSize=
+// @query {number} page - 当前页
+// @query {number} pageSize - 每页数量
+// @returns {Object} { articles, pagination: { total, currentPage, pageSize } }
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -33,6 +37,9 @@ router.get(
   }),
 );
 
+// GET /articles/:id
+// @param {number} id - 文章 ID
+// @returns {Object} { article }
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {

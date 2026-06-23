@@ -11,6 +11,8 @@ const { asyncRoute, findByPkOrFail } = require('../utils/routes');
 
 const router = express.Router();
 
+// POST /likes
+// @body {number} courseId - 课程 ID
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -48,6 +50,10 @@ router.post(
   }),
 );
 
+// GET /likes?page=&pageSize=
+// @query {number} page - 当前页
+// @query {number} pageSize - 每页数量
+// @returns {Object} { courses, pagination: { total, currentPage, pageSize } }
 router.get(
   '/',
   asyncRoute(async (req, res) => {

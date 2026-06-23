@@ -10,6 +10,11 @@ const { asyncRoute, findByPkOrFail, paginate } = require('../../utils/routes');
 
 const router = express.Router();
 
+// GET /admin/attachments?originalname=&page=&pageSize=
+// @query {string} originalname - 原文件名（模糊搜索）
+// @query {number} page - 当前页
+// @query {number} pageSize - 每页数量
+// @returns {Object} { attachments, pagination: { total, currentPage, pageSize } }
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -32,6 +37,7 @@ router.get(
   }),
 );
 
+// POST /admin/attachments
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -40,6 +46,8 @@ router.post(
   }),
 );
 
+// DELETE /admin/attachments/:id
+// @param {number} id - 附件 ID（删除 COS 文件和数据库记录）
 router.delete(
   '/:id',
   asyncRoute(async (req, res) => {
