@@ -10,6 +10,7 @@ const { asyncRoute, paginate } = require('../utils/routes');
 const router = express.Router();
 
 /**
+ * GET /search
  * 搜索课程（按名称模糊匹配）。
  * @query {string} name - 课程名称（模糊搜索）
  * @query {number} page - 当前页

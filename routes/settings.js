@@ -11,6 +11,7 @@ const { asyncRoute } = require('../utils/routes');
 const router = express.Router();
 
 /**
+ * GET /settings
  * 获取站点设置。
  * @returns {Object} { setting }
  */

@@ -11,6 +11,7 @@ const { asyncRoute, findByPkOrFail, paginate, pickFields } = require('../../util
 const router = express.Router();
 
 /**
+ * GET /admin/articles
  * 获取文章列表（支持标题筛选和回收站查询）。
  * @query {string} title - 文章标题（模糊搜索）
  * @query {string} deleted - 是否查询回收站（"true" 时查软删除记录）
@@ -41,6 +42,7 @@ router.get(
 );
 
 /**
+ * GET /admin/articles/:id
  * 获取文章详情。
  * @param {number} id - 文章 ID
  * @returns {Object} { article }
@@ -54,6 +56,7 @@ router.get(
 );
 
 /**
+ * POST /admin/articles
  * 创建文章。
  * @body {string} title - 文章标题
  * @body {string} content - 文章内容
@@ -69,6 +72,7 @@ router.post(
 );
 
 /**
+ * POST /admin/articles/delete
  * 将文章软删除到回收站。
  * @body {number} id - 文章 ID（软删除到回收站）
  */
@@ -117,6 +121,7 @@ router.post(
 );
 
 /**
+ * POST /admin/articles/restore
  * 更新文章。
  * @param {number} id - 文章 ID
  * @body {string} title - 新标题

@@ -12,6 +12,7 @@ const { asyncRoute, findByPkOrFail, paginate } = require('../utils/routes');
 const router = express.Router();
 
 /**
+ * GET /courses
  * 获取课程列表（需指定分类ID）。
  * @query {number} categoryId - 分类 ID（必填）
  * @query {number} page - 当前页
@@ -48,6 +49,7 @@ router.get(
 );
 
 /**
+ * GET /courses/:id
  * 获取课程详情（含分类、讲师和章节）。
  * @param {number} id - 课程 ID
  * @returns {Object} { course, category, user, chapters }

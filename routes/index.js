@@ -12,6 +12,7 @@ const { asyncRoute } = require('../utils/routes');
 const router = express.Router();
 
 /**
+ * GET /
  * 获取首页推荐、人气和入门课程。
  */
 router.get(

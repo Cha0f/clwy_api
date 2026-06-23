@@ -23,6 +23,7 @@ const PROFILE_FIELDS = [
 const CREATE_FIELDS = [...PROFILE_FIELDS, 'password', 'role'];
 
 /**
+ * GET /admin/users
  * 获取用户列表（多条件筛选）。
  * @query {string} email - 邮箱（精确匹配）
  * @query {string} username - 用户名（精确匹配）
@@ -51,6 +52,7 @@ router.get(
 );
 
 /**
+ * GET /admin/users/me
  * 获取当前管理员资料。
  * @returns {Object} { user }
  */
@@ -63,6 +65,7 @@ router.get(
 );
 
 /**
+ * GET /admin/users/:id
  * 获取用户详情。
  * @param {number} id - 用户 ID
  * @returns {Object} { user }
@@ -76,6 +79,7 @@ router.get(
 );
 
 /**
+ * POST /admin/users
  * 创建用户。
  * @body {string} email - 邮箱
  * @body {string} username - 用户名
@@ -97,6 +101,7 @@ router.post(
 );
 
 /**
+ * PUT /admin/users/:id
  * 更新用户。
  * @param {number} id - 用户 ID
  * @body {string} email - 新邮箱
@@ -133,6 +138,7 @@ router.put(
 );
 
 /**
+ * DELETE /admin/users/:id
  * 删除用户（禁止自删、需保留至少一位管理员）。
  * @param {number} id - 用户 ID（禁止自删、需至少保留一位管理员）
  */

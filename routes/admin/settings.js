@@ -21,6 +21,7 @@ async function getSetting() {
 }
 
 /**
+ * GET /admin/settings
  * 获取系统设置。
  * @returns {Object} { setting }
  */
@@ -33,6 +34,7 @@ router.get(
 );
 
 /**
+ * PUT /admin/settings
  * 更新系统设置。
  * @body {string} name - 站点名称
  * @body {string} icp - ICP 备案号
@@ -53,6 +55,7 @@ router.put(
 );
 
 /**
+ * GET /admin/settings/flush-all
  * 清空 Redis 所有缓存。
  */
 router.get(

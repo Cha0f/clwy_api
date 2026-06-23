@@ -12,6 +12,7 @@ const { setKey } = require('../utils/redis');
 const router = express.Router();
 
 /**
+ * GET /captcha
  * 获取图形验证码。
  * @returns {Object} { captchaKey: "captcha:uuid", captchaData: "<svg>..." }
  */

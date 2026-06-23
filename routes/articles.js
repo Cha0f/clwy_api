@@ -11,6 +11,7 @@ const { asyncRoute, findByPkOrFail, paginate } = require('../utils/routes');
 const router = express.Router();
 
 /**
+ * GET /articles
  * 获取文章列表。
  * @query {number} page - 当前页
  * @query {number} pageSize - 每页数量
@@ -40,6 +41,7 @@ router.get(
 );
 
 /**
+ * GET /articles/:id
  * 获取文章详情。
  * @param {number} id - 文章 ID
  * @returns {Object} { article }

@@ -11,6 +11,7 @@ const validateCaptcha = require('../middlewares/validate-captcha');
 const router = express.Router();
 
 /**
+ * POST /auth/sign_up
  * 用户注册。
  * @body {string} email - 邮箱
  * @body {string} username - 用户名
@@ -36,6 +37,7 @@ router.post(
 );
 
 /**
+ * POST /auth/sign_in
  * 用户登录。
  * @body {string} login - 邮箱或用户名
  * @body {string} password - 密码

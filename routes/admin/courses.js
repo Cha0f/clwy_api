@@ -28,6 +28,7 @@ function listAssociations() {
 }
 
 /**
+ * GET /admin/courses
  * 获取课程列表（多条件筛选）。
  * @query {number} categoryId - 分类 ID（精确筛选）
  * @query {number} userId - 讲师 ID（精确筛选）
@@ -70,6 +71,7 @@ router.get(
 );
 
 /**
+ * GET /admin/courses/:id
  * 获取课程详情（含分类、讲师和章节）。
  * @param {number} id - 课程 ID
  * @returns {Object} { course }（含分类、讲师和章节列表）
@@ -99,6 +101,7 @@ router.get(
 );
 
 /**
+ * POST /admin/courses
  * 创建课程。
  * @body {number} categoryId - 分类 ID
  * @body {number} userId - 讲师 ID
@@ -119,6 +122,7 @@ router.post(
 );
 
 /**
+ * PUT /admin/courses/:id
  * 更新课程。
  * @param {number} id - 课程 ID
  * @body {number} categoryId - 新分类 ID
@@ -141,6 +145,7 @@ router.put(
 );
 
 /**
+ * DELETE /admin/courses/:id
  * 删除课程（需无可关联章节）。
  * @param {number} id - 课程 ID（需无可关联章节）
  */

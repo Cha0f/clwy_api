@@ -21,6 +21,7 @@ const signInLimiter = rateLimit({
 });
 
 /**
+ * POST /admin/auth/sign_in
  * 管理员登录。
  * @body {string} login - 邮箱或用户名
  * @body {string} password - 密码
