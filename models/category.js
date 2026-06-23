@@ -52,25 +52,6 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
     },
-    {
-      sequelize,
-      modelName: 'Category',
-      indexes: [
-        { unique: true, fields: ['name'] },
-      ],
-      hooks: {
-        beforeValidate: async (instance) => {
-          if (instance.changed('name')) {
-            const existing = await sequelize.models.Category.findOne({
-              where: { name: instance.name },
-            });
-            if (existing && existing.id !== instance.id) {
-              throw new Error('名称已经存在，请选择其他名称。');
-            }
-          }
-        },
-      },
-    },
   );
   return Category;
 };

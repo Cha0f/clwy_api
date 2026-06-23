@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const COS_SDK = require('cos-nodejs-sdk-v5');
 const { success, failure } = require('../utils/responses');
 const createError = require('http-errors');
 const { Attachment } = require('../models');
@@ -63,8 +64,6 @@ function generateFileName(file) {
  * @returns {Promise<string>} 可公开访问的 URL
  */
 async function uploadToCos(file, fileName) {
-  const COS_SDK = require('cos-nodejs-sdk-v5');
-
   if (!process.env.COS_ACCESS_KEY_ID || !process.env.COS_ACCESS_KEY_SECRET) {
     throw createError(500, '文件上传服务未配置，请联系管理员。');
   }

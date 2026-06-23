@@ -24,9 +24,9 @@ router.get('/', async (req, res) => {
       throw createError(400, '获取课程列表失败，分类ID不能为空');
     }
     const cacheKey = `courses:${categoryId}:${currentPage}:${pageSize}`;
-    let data = await getKey(cacheKey);
+    const data = await getKey(cacheKey);
     if (data) {
-      return success(res, '查询文章列表成功。', data);
+      return success(res, '查询课程列表成功。', data);
     }
     const condition = {
       attributes: { exclude: ['CategoryId', 'UserId', 'content'] },
@@ -36,16 +36,23 @@ router.get('/', async (req, res) => {
       offset,
     };
     const { count, rows } = await Course.findAndCountAll(condition);
-    data = {
+
+    await setKey(cacheKey, {
       courses: rows,
       pagination: {
         total: count,
         currentPage,
         pageSize,
       },
-    };
-    await setKey(cacheKey, data);
-    success(res, '查询课程列表成功。', { data });
+    });
+    success(res, '查询课程列表成功。', {
+      courses: rows,
+      pagination: {
+        total: count,
+        currentPage,
+        pageSize,
+      },
+    });
   } catch (err) {
     failure(res, err);
   }
@@ -69,7 +76,7 @@ router.get('/:id', async (req, res) => {
         attributes: { exclude: ['CategoryId', 'UserId'] },
       });
       if (!course) {
-        throw new NotFound(`ID: ${id}的课程未找到。`);
+        throw createError(404, `ID: ${id}的课程未找到。`);
       }
       await setKey(`course:${id}`, course);
     }

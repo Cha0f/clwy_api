@@ -51,14 +51,9 @@ router.post('/sign_in', signInLimiter, async (req, res) => {
 
     // 通过 email 或 username 查找用户
     const user = await User.findOne(condition);
-    if (!user) {
-      throw createError(404, '用户不存在。');
-    }
-
-    // bcrypt 比对密码
-    const isPasswordValid = bcrypt.compareSync(password, user.password);
-    if (!isPasswordValid) {
-      throw createError(401, '密码错误。');
+    // 统一错误消息：将"用户不存在"和"密码错误"合并为同一条消息，避免账号枚举攻击
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      throw createError(401, '邮箱/用户名或密码错误。');
     }
 
     // 必须是管理员角色才能登录后台

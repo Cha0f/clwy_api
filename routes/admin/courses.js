@@ -30,12 +30,12 @@ router.get('/', async function (req, res) {
 
     // 按分类筛选
     if (query.categoryId) {
-      condition.where.categoryId = { [Op.eq]: query.categoryId };
+      condition.where.categoryId = query.categoryId;
     }
 
     // 按讲师筛选
     if (query.userId) {
-      condition.where.userId = { [Op.eq]: query.userId };
+      condition.where.userId = query.userId;
     }
 
     // 按名称模糊搜索（String 转换 + trim 防类型绕过）
@@ -48,12 +48,12 @@ router.get('/', async function (req, res) {
 
     // 是否推荐（URL 参数为字符串，需转布尔值）
     if (query.recommended) {
-      condition.where.recommended = { [Op.eq]: query.recommended === 'true' };
+      condition.where.recommended = query.recommended === 'true';
     }
 
     // 是否入门课程
     if (query.introductory) {
-      condition.where.introductory = { [Op.eq]: query.introductory === 'true' };
+      condition.where.introductory = query.introductory === 'true';
     }
 
     const { count, rows } = await Course.findAndCountAll(condition);

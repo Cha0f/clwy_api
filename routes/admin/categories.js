@@ -157,11 +157,11 @@ function filterBody(req) {
  */
 async function getCategory(req) {
   const { id } = req.params;
-  const categories = await Category.findByPk(id);
-  if (!categories) {
+  const category = await Category.findByPk(id);
+  if (!category) {
     throw createError(404, `ID: ${id}的分类没有找到。`);
   }
-  return categories;
+  return category;
 }
 
 /**

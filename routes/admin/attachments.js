@@ -3,6 +3,7 @@ const router = express.Router();
 const { Attachment, User } = require('../../models');
 const { Op } = require('sequelize');
 const createError = require('http-errors');
+const COS_SDK = require('cos-nodejs-sdk-v5');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
 
@@ -14,8 +15,6 @@ const { getPagination } = require('../../utils/pagination');
  */
 async function deleteFromCos(filePath) {
   if (!filePath) return;
-
-  const COS_SDK = require('cos-nodejs-sdk-v5');
 
   if (!process.env.COS_ACCESS_KEY_ID || !process.env.COS_ACCESS_KEY_SECRET) {
     console.error('COS 未配置，无法删除远程文件:', filePath);

@@ -30,12 +30,12 @@ router.get('/', async function (req, res) {
 
     // 精确匹配 email
     if (query.email) {
-      condition.where.email = { [Op.eq]: query.email };
+      condition.where.email = query.email;
     }
 
     // 精确匹配 username
     if (query.username) {
-      condition.where.username = { [Op.eq]: query.username };
+      condition.where.username = query.username;
     }
 
     // 模糊匹配 nickname（输入净化）
@@ -48,7 +48,7 @@ router.get('/', async function (req, res) {
 
     // 精确匹配 role（0=普通用户，100=管理员）
     if (query.role) {
-      condition.where.role = { [Op.eq]: query.role };
+      condition.where.role = query.role;
     }
 
     const { count, rows } = await User.findAndCountAll(condition);

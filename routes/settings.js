@@ -27,10 +27,9 @@ router.get('/', async function (req, res) {
       if (!setting) {
         throw createError(404, '未找到系统设置，请联系管理员。');
       }
+      // 将数据写入缓存
+      await setKey(cacheKey, setting);
     }
-
-    // 将数据写入缓存
-    await setKey(cacheKey, setting);
 
     success(res, '查询系统信息成功。', { setting });
   } catch (error) {

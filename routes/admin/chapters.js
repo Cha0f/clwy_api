@@ -32,7 +32,7 @@ router.get('/', async function (req, res) {
       limit: pageSize,
       offset,
       where: {
-        courseId: { [Op.eq]: query.courseId },
+        courseId: query.courseId,
       },
     };
 
