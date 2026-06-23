@@ -24,6 +24,17 @@ module.exports = {
   get port() {
     return process.env.PORT || '3000';
   },
+  cors: {
+    get origins() {
+      const origins =
+        process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000';
+
+      return origins
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+    },
+  },
   jwt: {
     get secret() {
       return process.env.SECRET_KEY;

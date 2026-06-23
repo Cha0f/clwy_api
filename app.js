@@ -12,6 +12,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
+const env = require('./config/env');
 const { adminAuth, userAuth } = require('./middlewares/auth');
 const { failure } = require('./utils/responses');
 
@@ -45,7 +46,7 @@ app.use(helmet());
 // CORS 使用明确的来源白名单，并允许前端携带认证信息。
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://115.159.69.223:3000'],
+    origin: env.cors.origins,
     credentials: true,
   }),
 );

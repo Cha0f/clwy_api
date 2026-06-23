@@ -17,6 +17,17 @@ test('环境配置通过 getter 读取最新的进程变量', () => {
   }
 });
 
+test('CORS 来源支持逗号分隔、空格清理和运行时覆盖', () => {
+  const previousCorsOrigins = process.env.CORS_ORIGINS;
+  try {
+    process.env.CORS_ORIGINS = ' http://localhost:5173, http://localhost:3000 ';
+
+    assert.deepEqual(env.cors.origins, ['http://localhost:5173', 'http://localhost:3000']);
+  } finally {
+    restoreEnv('CORS_ORIGINS', previousCorsOrigins);
+  }
+});
+
 function restoreEnv(name, value) {
   if (value === undefined) {
     delete process.env[name];
