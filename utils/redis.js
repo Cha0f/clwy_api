@@ -9,7 +9,8 @@ let client;
 const redisClient = async () => {
   if (client) return; // 如果客户端初始化，则不再重复初始化
 
-  client = await createClient()
+  const url = process.env.REDIS_URL || 'redis://localhost:6379';
+  client = await createClient({ url })
     .on('error', (err) => console.error('Redis 连接失败', err))
     .connect();
 };
