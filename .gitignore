@@ -24,6 +24,5 @@ build/
 .vscode/
 
 # 线上忽略配置
-config/config.json
 .htaccess
 .well-known/
