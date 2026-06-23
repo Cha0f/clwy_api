@@ -9,11 +9,13 @@ const { asyncRoute, paginate } = require('../utils/routes');
 
 const router = express.Router();
 
-// GET /search?name=&page=&pageSize=
-// @query {string} name - 课程名称（模糊搜索）
-// @query {number} page - 当前页
-// @query {number} pageSize - 每页数量
-// @returns {Object} { courses, pagination: { total, currentPage, pageSize } }
+/**
+ * 搜索课程（按名称模糊匹配）。
+ * @query {string} name - 课程名称（模糊搜索）
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { courses, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {

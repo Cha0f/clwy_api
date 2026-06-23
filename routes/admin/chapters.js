@@ -18,12 +18,14 @@ function chapterQueryOptions() {
   };
 }
 
-// GET /admin/chapters?courseId=&title=&page=&pageSize=
-// @query {number} courseId - 课程 ID（必填）
-// @query {string} title - 章节标题（模糊搜索）
-// @query {number} page - 当前页
-// @query {number} pageSize - 每页数量
-// @returns {Object} { chapters, pagination: { total, currentPage, pageSize } }
+/**
+ * 获取章节列表（需指定课程ID）。
+ * @query {number} courseId - 课程 ID（必填）
+ * @query {string} title - 章节标题（模糊搜索）
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { chapters, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -53,9 +55,11 @@ router.get(
   }),
 );
 
-// GET /admin/chapters/:id
-// @param {number} id - 章节 ID
-// @returns {Object} { chapter }
+/**
+ * 获取章节详情。
+ * @param {number} id - 章节 ID
+ * @returns {Object} { chapter }
+ */
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -64,12 +68,14 @@ router.get(
   }),
 );
 
-// POST /admin/chapters
-// @body {number} courseId - 课程 ID（必填）
-// @body {string} title - 章节标题
-// @body {string} content - 章节内容
-// @body {string} video - 视频 URL
-// @body {number} rank - 排序权重
+/**
+ * 创建章节（同步增加课程章节数）。
+ * @body {number} courseId - 课程 ID（必填）
+ * @body {string} title - 章节标题
+ * @body {string} content - 章节内容
+ * @body {string} video - 视频 URL
+ * @body {number} rank - 排序权重
+ */
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -92,13 +98,15 @@ router.post(
   }),
 );
 
-// PUT /admin/chapters/:id
-// @param {number} id - 章节 ID
-// @body {number} courseId - 新课程 ID（跨课程移动时同步双方计数器）
-// @body {string} title - 新标题
-// @body {string} content - 新内容
-// @body {string} video - 新视频 URL
-// @body {number} rank - 新排序权重
+/**
+ * 更新章节（跨课程移动时同步双方计数器）。
+ * @param {number} id - 章节 ID
+ * @body {number} courseId - 新课程 ID（跨课程移动时同步双方计数器）
+ * @body {string} title - 新标题
+ * @body {string} content - 新内容
+ * @body {string} video - 新视频 URL
+ * @body {number} rank - 新排序权重
+ */
 router.put(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -143,8 +151,10 @@ router.put(
   }),
 );
 
-// DELETE /admin/chapters/:id
-// @param {number} id - 章节 ID（删除后减少所属课程章节数）
+/**
+ * 删除章节（同步减少课程章节数）。
+ * @param {number} id - 章节 ID（删除后减少所属课程章节数）
+ */
 router.delete(
   '/:id',
   asyncRoute(async (req, res) => {

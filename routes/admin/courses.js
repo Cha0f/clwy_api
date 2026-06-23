@@ -27,15 +27,17 @@ function listAssociations() {
   ];
 }
 
-// GET /admin/courses?categoryId=&userId=&name=&recommended=&introductory=&page=&pageSize=
-// @query {number} categoryId - 分类 ID（精确筛选）
-// @query {number} userId - 讲师 ID（精确筛选）
-// @query {string} name - 课程名称（模糊搜索）
-// @query {boolean} recommended - 推荐课程
-// @query {boolean} introductory - 入门课程
-// @query {number} page - 当前页
-// @query {number} pageSize - 每页数量
-// @returns {Object} { courses, pagination: { total, currentPage, pageSize } }
+/**
+ * 获取课程列表（多条件筛选）。
+ * @query {number} categoryId - 分类 ID（精确筛选）
+ * @query {number} userId - 讲师 ID（精确筛选）
+ * @query {string} name - 课程名称（模糊搜索）
+ * @query {boolean} recommended - 推荐课程
+ * @query {boolean} introductory - 入门课程
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { courses, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -67,9 +69,11 @@ router.get(
   }),
 );
 
-// GET /admin/courses/:id
-// @param {number} id - 课程 ID
-// @returns {Object} { course }（含分类、讲师和章节列表）
+/**
+ * 获取课程详情（含分类、讲师和章节）。
+ * @param {number} id - 课程 ID
+ * @returns {Object} { course }（含分类、讲师和章节列表）
+ */
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -94,14 +98,16 @@ router.get(
   }),
 );
 
-// POST /admin/courses
-// @body {number} categoryId - 分类 ID
-// @body {number} userId - 讲师 ID
-// @body {string} name - 课程名称
-// @body {string} image - 课程封面 URL
-// @body {boolean} recommended - 是否推荐
-// @body {boolean} introductory - 是否入门
-// @body {string} content - 课程介绍
+/**
+ * 创建课程。
+ * @body {number} categoryId - 分类 ID
+ * @body {number} userId - 讲师 ID
+ * @body {string} name - 课程名称
+ * @body {string} image - 课程封面 URL
+ * @body {boolean} recommended - 是否推荐
+ * @body {boolean} introductory - 是否入门
+ * @body {string} content - 课程介绍
+ */
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -112,15 +118,17 @@ router.post(
   }),
 );
 
-// PUT /admin/courses/:id
-// @param {number} id - 课程 ID
-// @body {number} categoryId - 新分类 ID
-// @body {number} userId - 新讲师 ID
-// @body {string} name - 新名称
-// @body {string} image - 新封面
-// @body {boolean} recommended
-// @body {boolean} introductory
-// @body {string} content - 新介绍
+/**
+ * 更新课程。
+ * @param {number} id - 课程 ID
+ * @body {number} categoryId - 新分类 ID
+ * @body {number} userId - 新讲师 ID
+ * @body {string} name - 新名称
+ * @body {string} image - 新封面
+ * @body {boolean} recommended
+ * @body {boolean} introductory
+ * @body {string} content - 新介绍
+ */
 router.put(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -132,8 +140,10 @@ router.put(
   }),
 );
 
-// DELETE /admin/courses/:id
-// @param {number} id - 课程 ID（需无可关联章节）
+/**
+ * 删除课程（需无可关联章节）。
+ * @param {number} id - 课程 ID（需无可关联章节）
+ */
 router.delete(
   '/:id',
   asyncRoute(async (req, res) => {

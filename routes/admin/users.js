@@ -22,14 +22,16 @@ const PROFILE_FIELDS = [
 ];
 const CREATE_FIELDS = [...PROFILE_FIELDS, 'password', 'role'];
 
-// GET /admin/users?email=&username=&role=&nickname=&page=&pageSize=
-// @query {string} email - 邮箱（精确匹配）
-// @query {string} username - 用户名（精确匹配）
-// @query {number} role - 角色（精确匹配，0 普通用户 / 100 管理员）
-// @query {string} nickname - 昵称（模糊搜索）
-// @query {number} page - 当前页
-// @query {number} pageSize - 每页数量
-// @returns {Object} { users, pagination: { total, currentPage, pageSize } }
+/**
+ * 获取用户列表（多条件筛选）。
+ * @query {string} email - 邮箱（精确匹配）
+ * @query {string} username - 用户名（精确匹配）
+ * @query {number} role - 角色（精确匹配，0 普通用户 / 100 管理员）
+ * @query {string} nickname - 昵称（模糊搜索）
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { users, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -48,8 +50,10 @@ router.get(
   }),
 );
 
-// GET /admin/users/me
-// @returns {Object} { user }
+/**
+ * 获取当前管理员资料。
+ * @returns {Object} { user }
+ */
 router.get(
   '/me',
   asyncRoute(async (req, res) => {
@@ -58,9 +62,11 @@ router.get(
   }),
 );
 
-// GET /admin/users/:id
-// @param {number} id - 用户 ID
-// @returns {Object} { user }
+/**
+ * 获取用户详情。
+ * @param {number} id - 用户 ID
+ * @returns {Object} { user }
+ */
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -69,16 +75,18 @@ router.get(
   }),
 );
 
-// POST /admin/users
-// @body {string} email - 邮箱
-// @body {string} username - 用户名
-// @body {string} nickname - 昵称
-// @body {string} avatar - 头像 URL
-// @body {number} gender - 性别（0/1/2）
-// @body {string} company - 公司
-// @body {string} introduce - 简介
-// @body {string} password - 密码
-// @body {number} role - 角色（0 普通用户 / 100 管理员）
+/**
+ * 创建用户。
+ * @body {string} email - 邮箱
+ * @body {string} username - 用户名
+ * @body {string} nickname - 昵称
+ * @body {string} avatar - 头像 URL
+ * @body {number} gender - 性别（0/1/2）
+ * @body {string} company - 公司
+ * @body {string} introduce - 简介
+ * @body {string} password - 密码
+ * @body {number} role - 角色（0 普通用户 / 100 管理员）
+ */
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -88,17 +96,19 @@ router.post(
   }),
 );
 
-// PUT /admin/users/:id
-// @param {number} id - 用户 ID
-// @body {string} email - 新邮箱
-// @body {string} username - 新用户名
-// @body {string} nickname - 新昵称
-// @body {string} avatar - 新头像
-// @body {number} gender - 新性别
-// @body {string} company - 新公司
-// @body {string} introduce - 新简介
-// @body {string} password - 新密码（需同时提供 currentPassword）
-// @body {string} currentPassword - 当前管理员密码（修改密码时必填）
+/**
+ * 更新用户。
+ * @param {number} id - 用户 ID
+ * @body {string} email - 新邮箱
+ * @body {string} username - 新用户名
+ * @body {string} nickname - 新昵称
+ * @body {string} avatar - 新头像
+ * @body {number} gender - 新性别
+ * @body {string} company - 新公司
+ * @body {string} introduce - 新简介
+ * @body {string} password - 新密码（需同时提供 currentPassword）
+ * @body {string} currentPassword - 当前管理员密码（修改密码时必填）
+ */
 router.put(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -122,8 +132,10 @@ router.put(
   }),
 );
 
-// DELETE /admin/users/:id
-// @param {number} id - 用户 ID（禁止自删、需至少保留一位管理员）
+/**
+ * 删除用户（禁止自删、需保留至少一位管理员）。
+ * @param {number} id - 用户 ID（禁止自删、需至少保留一位管理员）
+ */
 router.delete(
   '/:id',
   asyncRoute(async (req, res) => {
