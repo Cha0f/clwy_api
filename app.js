@@ -28,6 +28,7 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const likesRouter = require('./routes/likes');
 const uploadsRouter = require('./routes/uploads');
+const captchaRouter = require('./routes/captcha');
 // 后台路由
 const adminArticlesRouter = require('./routes/admin/articles');
 const adminCategoriesRouter = require('./routes/admin/categories');
@@ -67,6 +68,7 @@ app.use('/chapters', chaptersRouter);
 app.use('/articles', articlesRouter);
 app.use('/settings', settingsRouter);
 app.use('/search', searchRouter);
+app.use('/captcha', captchaRouter);
 
 // 前台认证路由共享限流器：同一 IP 在 15 分钟内最多请求 20 次。
 const authLimiter = rateLimit({

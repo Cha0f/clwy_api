@@ -6,11 +6,13 @@ const { User } = require('../models');
 const { authenticateCredentials, signUserToken } = require('../middlewares/auth');
 const { success } = require('../utils/responses');
 const { asyncRoute, pickFields } = require('../utils/routes');
+const validateCaptcha = require('../middlewares/validate-captcha');
 
 const router = express.Router();
 
 router.post(
   '/sign_up',
+  validateCaptcha,
   asyncRoute(async (req, res) => {
     // 只接受注册所需字段，客户端不能自行设置角色或其他内部属性。
     const body = pickFields(req.body, ['email', 'username', 'password', 'nickname']);
@@ -26,6 +28,7 @@ router.post(
 
 router.post(
   '/sign_in',
+  validateCaptcha,
   asyncRoute(async (req, res) => {
     const { login, password } = req.body;
     // 复用认证模块完成参数检查、账号查询和 bcrypt 比对。

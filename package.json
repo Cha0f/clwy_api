@@ -27,7 +27,8 @@
     "multer": "^2.2.0",
     "mysql2": "^3.22.5",
     "redis": "^6.0.0",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "svg-captcha": "^1.4.0"
   },
   "devDependencies": {
     "eslint": "^10.5.0",

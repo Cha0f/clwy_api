@@ -7,6 +7,7 @@ const { rateLimit } = require('express-rate-limit');
 const { authenticateCredentials, signUserToken } = require('../../middlewares/auth');
 const { success } = require('../../utils/responses');
 const { asyncRoute } = require('../../utils/routes');
+const validateCaptcha = require('../../middlewares/validate-captcha');
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const signInLimiter = rateLimit({
 
 router.post(
   '/sign_in',
+  validateCaptcha,
   signInLimiter,
   asyncRoute(async (req, res) => {
     const { login, password } = req.body;

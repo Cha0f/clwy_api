@@ -26,6 +26,7 @@ const cacheKeys = {
   chapters: (courseId) => `chapters:${courseId}`,
   publicUser: (id) => `users:public:${id}`,
   privateUser: (id) => `users:private:${id}`,
+  captcha: (uuid) => `captcha:${uuid}`,
 };
 
 /**
