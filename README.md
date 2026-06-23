@@ -72,6 +72,7 @@ clwy-api/
 ├── utils/
 │   ├── cache.js                   # 缓存键、cache-aside 与业务失效规则
 │   ├── cos.js                     # COS 上传、删除与文件命名
+│   ├── date-time.js               # Moment 创建/更新时间响应格式化
 │   ├── pagination.js              # 安全分页参数解析
 │   ├── redis.js                   # Redis 底层连接和原子读写
 │   ├── responses.js               # 统一成功和失败响应
@@ -94,6 +95,7 @@ clwy-api/
 | `utils/cache.js`              | 缓存键命名、cache-aside、精确键/模式失效、课程相关缓存联动清理          |
 | `utils/redis.js`              | Redis 单例连接、JSON 序列化、原子 `SET EX`、批量删除                    |
 | `utils/cos.js`                | COS 配置检查、唯一文件名、上传、删除与错误转换                          |
+| `utils/date-time.js`          | 递归格式化列表、详情和关联数据中的 `createdAt`、`updatedAt`             |
 | `utils/responses.js`          | 成功响应以及 Sequelize、JWT、Multer、HTTP 错误映射                      |
 
 每个异步路由通过 `asyncRoute` 进入统一错误处理；写接口通过 `pickFields` 明确允许字段；分页列表通过 `paginate` 返回一致结构。这样错误状态、分页规则和字段过滤只需在一个位置维护。
@@ -365,6 +367,8 @@ curl -X POST http://localhost:3000/uploads/oss \
 }
 ```
 
+所有成功响应中的 `createdAt` 和 `updatedAt`（包括数组和嵌套关联）统一使用 `YYYY-MM-DD HH:mm:ss` 格式。数据库字段本身仍保持 DATE 类型，`deletedAt` 不受影响。
+
 失败响应：
 
 ```json
@@ -466,7 +470,7 @@ npm run format:check
 npm run format
 ```
 
-当前共有 15 个测试，覆盖：
+当前共有 17 个测试，覆盖：
 
 - 分页默认值、上限、非法参数和 offset 溢出
 - 请求字段白名单
@@ -475,6 +479,7 @@ npm run format
 - 异步路由错误响应
 - Bearer Token 提取和 HS256 验签
 - 环境变量 getter 和运行时覆盖
+- Moment `createdAt`、`updatedAt` 递归格式化与异常值处理
 - 不同数据形状的缓存键隔离
 - 密码参数错误和用户安全序列化
 - Sequelize 显式关联外键

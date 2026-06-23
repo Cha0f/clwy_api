@@ -8,6 +8,7 @@
 
 const createError = require('http-errors');
 const env = require('../config/env');
+const { formatTimestamps } = require('./date-time');
 
 /**
  * 请求成功
@@ -21,7 +22,8 @@ function success(res, message, data = {}, code = 200) {
   res.status(code).json({
     status: code,
     message,
-    data,
+    // 在统一出口递归格式化，确保所有创建和更新时间遵循相同格式。
+    data: formatTimestamps(data),
   });
 }
 
