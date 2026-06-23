@@ -11,6 +11,11 @@ const { asyncRoute, findByPkOrFail, pickFields } = require('../utils/routes');
 
 const router = express.Router();
 
+/**
+ * GET /users/me
+ * 获取当前用户资料。
+ * @returns {Object} { user }
+ */
 router.get(
   '/me',
   asyncRoute(async (req, res) => {
@@ -23,6 +28,16 @@ router.get(
   }),
 );
 
+/**
+ * PUT /users/info
+ * 更新用户资料。
+ * @body {string} avatar - 头像 URL
+ * @body {string} nickname - 昵称
+ * @body {number} gender - 性别（0/1/2）
+ * @body {string} company - 公司
+ * @body {string} introduce - 简介
+ * @returns {Object} { user }
+ */
 router.put(
   '/info',
   asyncRoute(async (req, res) => {
@@ -38,6 +53,16 @@ router.put(
   }),
 );
 
+/**
+ * PUT /users/account
+ * 更新用户账户信息（邮箱、用户名、密码）。
+ * @body {string} currentPassword - 当前密码（必填）
+ * @body {string} password - 新密码
+ * @body {string} passwordConfirmation - 确认新密码
+ * @body {string} email - 新邮箱
+ * @body {string} username - 新用户名
+ * @returns {Object} { user }
+ */
 router.put(
   '/account',
   asyncRoute(async (req, res) => {

@@ -8,6 +8,11 @@ const { asyncRoute } = require('../../utils/routes');
 
 const router = express.Router();
 
+/**
+ * GET /admin/charts/gender
+ * 获取用户性别分布统计。
+ * @returns {Array} [{ value: number, name: string }] 男性/女性/未选择数量
+ */
 router.get(
   '/gender',
   asyncRoute(async (req, res) => {
@@ -26,6 +31,11 @@ router.get(
   }),
 );
 
+/**
+ * GET /admin/charts/user
+ * 获取每月注册用户数量。
+ * @returns {Object} { months: string[], values: number[] }
+ */
 router.get(
   '/user',
   asyncRoute(async (req, res) => {

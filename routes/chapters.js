@@ -10,6 +10,12 @@ const { asyncRoute, findByPkOrFail } = require('../utils/routes');
 
 const router = express.Router();
 
+/**
+ * GET /chapters/:id
+ * 获取章节详情（含所属课程、讲师和同课程目录）。
+ * @param {number} id - 章节 ID
+ * @returns {Object} { chapter, course, user, chapters }
+ */
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {

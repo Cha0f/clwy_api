@@ -10,6 +10,14 @@ const { asyncRoute, findByPkOrFail, paginate } = require('../../utils/routes');
 
 const router = express.Router();
 
+/**
+ * GET /admin/attachments
+ * 获取附件列表。
+ * @query {string} originalname - 原文件名（模糊搜索）
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { attachments, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -32,6 +40,10 @@ router.get(
   }),
 );
 
+/**
+ * POST /admin/attachments
+ * 创建附件占位接口（请通过上传接口创建）。
+ */
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -40,6 +52,11 @@ router.post(
   }),
 );
 
+/**
+ * DELETE /admin/attachments/:id
+ * 删除附件（同步删除 COS 文件）。
+ * @param {number} id - 附件 ID（删除 COS 文件和数据库记录）
+ */
 router.delete(
   '/:id',
   asyncRoute(async (req, res) => {

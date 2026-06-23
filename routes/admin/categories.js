@@ -11,6 +11,14 @@ const { asyncRoute, findByPkOrFail, paginate, pickFields } = require('../../util
 
 const router = express.Router();
 
+/**
+ * GET /admin/categories
+ * 获取分类列表。
+ * @query {string} name - 分类名称（模糊搜索）
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { categories, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -34,6 +42,12 @@ router.get(
   }),
 );
 
+/**
+ * GET /admin/categories/:id
+ * 获取分类详情。
+ * @param {number} id - 分类 ID
+ * @returns {Object} { category }
+ */
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -42,6 +56,12 @@ router.get(
   }),
 );
 
+/**
+ * POST /admin/categories
+ * 创建分类。
+ * @body {string} name - 分类名称
+ * @body {number} rank - 排序权重
+ */
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -53,6 +73,13 @@ router.post(
   }),
 );
 
+/**
+ * PUT /admin/categories/:id
+ * 更新分类。
+ * @param {number} id - 分类 ID
+ * @body {string} name - 新名称
+ * @body {number} rank - 新排序权重
+ */
 router.put(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -64,6 +91,11 @@ router.put(
   }),
 );
 
+/**
+ * DELETE /admin/categories/:id
+ * 删除分类（需无可关联课程）。
+ * @param {number} id - 分类 ID（需无可关联课程）
+ */
 router.delete(
   '/:id',
   asyncRoute(async (req, res) => {

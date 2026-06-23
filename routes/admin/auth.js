@@ -20,6 +20,15 @@ const signInLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * POST /admin/auth/sign_in
+ * 管理员登录。
+ * @body {string} login - 邮箱或用户名
+ * @body {string} password - 密码
+ * @body {string} captchaKey - 验证码 key
+ * @body {string} captchaText - 验证码文本
+ * @returns {string} token - JWT Token
+ */
 router.post(
   '/sign_in',
   validateCaptcha,

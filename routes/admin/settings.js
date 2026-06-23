@@ -20,6 +20,11 @@ async function getSetting() {
   return setting;
 }
 
+/**
+ * GET /admin/settings
+ * 获取系统设置。
+ * @returns {Object} { setting }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -28,6 +33,13 @@ router.get(
   }),
 );
 
+/**
+ * PUT /admin/settings
+ * 更新系统设置。
+ * @body {string} name - 站点名称
+ * @body {string} icp - ICP 备案号
+ * @body {string} copyright - 版权信息
+ */
 router.put(
   '/',
   asyncRoute(async (req, res) => {
@@ -42,6 +54,10 @@ router.put(
   }),
 );
 
+/**
+ * GET /admin/settings/flush-all
+ * 清空 Redis 所有缓存。
+ */
 router.get(
   '/flush-all',
   asyncRoute(async (req, res) => {

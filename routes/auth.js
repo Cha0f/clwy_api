@@ -10,6 +10,16 @@ const validateCaptcha = require('../middlewares/validate-captcha');
 
 const router = express.Router();
 
+/**
+ * POST /auth/sign_up
+ * 用户注册。
+ * @body {string} email - 邮箱
+ * @body {string} username - 用户名
+ * @body {string} password - 密码
+ * @body {string} nickname - 昵称
+ * @body {string} captchaKey - 验证码 key
+ * @body {string} captchaText - 验证码文本
+ */
 router.post(
   '/sign_up',
   validateCaptcha,
@@ -26,6 +36,15 @@ router.post(
   }),
 );
 
+/**
+ * POST /auth/sign_in
+ * 用户登录。
+ * @body {string} login - 邮箱或用户名
+ * @body {string} password - 密码
+ * @body {string} captchaKey - 验证码 key
+ * @body {string} captchaText - 验证码文本
+ * @returns {string} token - JWT Token
+ */
 router.post(
   '/sign_in',
   validateCaptcha,

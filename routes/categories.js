@@ -9,6 +9,10 @@ const { asyncRoute } = require('../utils/routes');
 
 const router = express.Router();
 
+/**
+ * GET /categories
+ * 获取分类列表。
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {

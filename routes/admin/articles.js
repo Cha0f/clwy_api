@@ -10,6 +10,15 @@ const { asyncRoute, findByPkOrFail, paginate, pickFields } = require('../../util
 
 const router = express.Router();
 
+/**
+ * GET /admin/articles
+ * 获取文章列表（支持标题筛选和回收站查询）。
+ * @query {string} title - 文章标题（模糊搜索）
+ * @query {string} deleted - 是否查询回收站（"true" 时查软删除记录）
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
+ * @returns {Object} { articles, pagination: { total, currentPage, pageSize } }
+ */
 router.get(
   '/',
   asyncRoute(async (req, res) => {
@@ -32,6 +41,12 @@ router.get(
   }),
 );
 
+/**
+ * GET /admin/articles/:id
+ * 获取文章详情。
+ * @param {number} id - 文章 ID
+ * @returns {Object} { article }
+ */
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {
@@ -40,6 +55,12 @@ router.get(
   }),
 );
 
+/**
+ * POST /admin/articles
+ * 创建文章。
+ * @body {string} title - 文章标题
+ * @body {string} content - 文章内容
+ */
 router.post(
   '/',
   asyncRoute(async (req, res) => {
@@ -50,6 +71,11 @@ router.post(
   }),
 );
 
+/**
+ * POST /admin/articles/delete
+ * 将文章软删除到回收站。
+ * @body {number} id - 文章 ID（软删除到回收站）
+ */
 router.post(
   '/delete',
   asyncRoute(async (req, res) => {
@@ -62,6 +88,10 @@ router.post(
   }),
 );
 
+/**
+ * 从回收站恢复文章。
+ * @body {number} id - 文章 ID（从回收站恢复）
+ */
 router.post(
   '/restore',
   asyncRoute(async (req, res) => {
@@ -74,6 +104,10 @@ router.post(
   }),
 );
 
+/**
+ * 彻底删除文章。
+ * @body {number} id - 文章 ID（彻底删除）
+ */
 router.post(
   '/force_delete',
   asyncRoute(async (req, res) => {
@@ -86,6 +120,13 @@ router.post(
   }),
 );
 
+/**
+ * POST /admin/articles/restore
+ * 更新文章。
+ * @param {number} id - 文章 ID
+ * @body {string} title - 新标题
+ * @body {string} content - 新内容
+ */
 router.put(
   '/:id',
   asyncRoute(async (req, res) => {
