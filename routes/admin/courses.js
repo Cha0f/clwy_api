@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
+const { getKeysByPattern, delKey } = require('../../utils/redis');
 
 /**
  * 查询课程列表（后台）
@@ -94,6 +95,7 @@ router.post('/', async function (req, res) {
   try {
     const body = filterBody(req);
     const course = await Course.create(body);
+    await clearCache();
     success(res, '创建课程成功。', { course }, 201);
   } catch (err) {
     failure(res, err);
@@ -125,6 +127,7 @@ router.delete('/:id', async function (req, res) {
 
       await course.destroy({ transaction: t });
     });
+    await clearCache(course);
     success(res, '课程删除成功。');
   } catch (err) {
     failure(res, err);
@@ -141,6 +144,7 @@ router.put('/:id', async function (req, res) {
     const body = filterBody(req);
     const course = await getCourse(req);
     await course.update(body);
+    await clearCache(course);
     success(res, '课程更新成功', { course });
   } catch (err) {
     failure(res, err);
@@ -243,6 +247,22 @@ async function getCourseDetail(req) {
     throw createError(404, `ID: ${id}的课程没有找到。`);
   }
   return course;
+}
+
+/**
+ * 清除缓存
+ * @param course
+ * @returns {Promise<void>}
+ */
+async function clearCache(course = null) {
+  const keys = await getKeysByPattern('courses:*');
+  if (keys.length !== 0) {
+    await delKey(keys);
+  }
+
+  if (course) {
+    await delKey(`course:${course.id}`);
+  }
 }
 
 module.exports = router;

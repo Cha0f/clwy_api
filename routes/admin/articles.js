@@ -5,7 +5,7 @@ const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
-const { getKeyByPattern, delKey } = require('../../utils/redis');
+const { getKeysByPattern, delKey } = require('../../utils/redis');
 
 /**
  * 查询文章列表
@@ -192,7 +192,7 @@ async function getArticle(req) {
  */
 async function clearCache(id) {
   // 清除所有文章列表缓存
-  const keys = await getKeyByPattern('articles:*');
+  const keys = await getKeysByPattern('articles:*');
 
   if (keys.length !== 0) {
     await delKey(keys);

@@ -5,6 +5,7 @@ const createError = require('http-errors');
 const { Op } = require('sequelize');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
+const { delKey } = require('../../utils/redis');
 
 /**
  * 查询章节列表（后台）
@@ -100,6 +101,7 @@ router.post('/', async function (req, res) {
       });
       return ch;
     });
+    await clearCache(chapter);
     success(res, '创建章节成功。', { chapter }, 201);
   } catch (err) {
     failure(res, err);
@@ -124,6 +126,7 @@ router.delete('/:id', async function (req, res) {
         transaction: t,
       });
     });
+    await clearCache(chapter);
     success(res, '章节删除成功。');
   } catch (err) {
     failure(res, err);
@@ -140,6 +143,7 @@ router.put('/:id', async function (req, res) {
     const body = filterBody(req);
     const chapter = await getChapter(req);
     await chapter.update(body);
+    await clearCache(chapter);
     success(res, '章节更新成功', { chapter });
   } catch (err) {
     failure(res, err);
@@ -193,6 +197,16 @@ async function getChapter(req) {
     throw createError(404, `ID: ${id}的章节没有找到。`);
   }
   return chapter;
+}
+
+/**
+ * 清除缓存
+ * @param chapter
+ * @returns {Promise<void>}
+ */
+async function clearCache(chapter) {
+  await delKey(`chapters:${chapter.courseId}`);
+  await delKey(`chapter:${chapter.id}`);
 }
 
 module.exports = router;

@@ -3,7 +3,7 @@ const router = express.Router();
 const { Setting } = require('../../models');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
-const { delKey } = require('../../utils/redis');
+const { delKey, flushAll } = require('../../utils/redis');
 
 /**
  * 查询系统设置详情
@@ -36,6 +36,19 @@ router.put('/', async function (req, res) {
     success(res, '系统设置更新成功', { setting });
   } catch (err) {
     failure(res, err);
+  }
+});
+
+/**
+ * 清除所有缓存
+ * GET /admin/settings/flush-all
+ */
+router.get('/flush-all', async function (req, res) {
+  try {
+    await flushAll();
+    success(res, '清除所有缓存成功。');
+  } catch (error) {
+    failure(res, error);
   }
 });
 

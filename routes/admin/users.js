@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const createError = require('http-errors');
 const { success, failure } = require('../../utils/responses');
 const { getPagination } = require('../../utils/pagination');
+const { delKey } = require('../../utils/redis');
 
 /**
  * 查询用户列表
@@ -158,6 +159,7 @@ router.put('/:id', async function (req, res) {
     const body = filterBodyForUpdate(req);
     const user = await getUser(req);
     await user.update(body);
+    await clearCache(user);
     success(res, '用户更新成功', { user });
   } catch (err) {
     failure(res, err);
@@ -229,6 +231,15 @@ async function getUser(req) {
     throw createError(404, `ID: ${id}的用户没有找到。`);
   }
   return user;
+}
+
+/**
+ * 清除缓存
+ * @param user
+ * @returns {Promise<void>}
+ */
+async function clearCache(user) {
+  await delKey(`user:${user.id}`);
 }
 
 module.exports = router;
