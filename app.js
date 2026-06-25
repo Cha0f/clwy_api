@@ -13,6 +13,9 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const env = require('./config/env');
+// 启动邮件消费者
+const { mailConsumer } = require('./utils/rabbit-mq');
+mailConsumer().catch((err) => console.error('邮件消费者启动失败：', err.message));
 const { adminAuth, userAuth } = require('./middlewares/auth');
 const { failure } = require('./utils/responses');
 
