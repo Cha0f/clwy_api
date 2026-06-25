@@ -7,6 +7,7 @@ const { authenticateCredentials, signUserToken } = require('../middlewares/auth'
 const { success } = require('../utils/responses');
 const { asyncRoute, pickFields } = require('../utils/routes');
 const validateCaptcha = require('../middlewares/validate-captcha');
+const sendMail = require('../utils/mail');
 
 const router = express.Router();
 
@@ -33,6 +34,18 @@ router.post(
     const user = await User.create(body);
 
     success(res, '创建用户成功', { user: user.toSafeJSON() }, 201);
+
+    // 异步发送邮件，发送失败不阻塞注册成功响应
+    const html = `
+      您好，<span style="color: red">${user.nickname}。</span><br><br>
+      恭喜，您已成功注册会员！<br><br>
+      请访问<a href="https://clwy.cn">「长乐未央」</a>官网，了解更多。<br><br>
+      ━━━━━━━━━━━━━━━━<br>
+      长乐未央
+    `;
+
+    sendMail(user.email, '「长乐未央」的注册成功通知', html)
+      .catch(err => console.error('注册邮件发送失败:', err.message));
   }),
 );
 
