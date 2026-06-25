@@ -5,6 +5,7 @@
  */
 const { createClient } = require('redis');
 const env = require('../config/env');
+const logger = require('./logger');
 
 let client;
 
@@ -20,7 +21,15 @@ async function redisClient() {
   // 第一次调用或连接已关闭时重新创建客户端。
   client = createClient({ url: env.redis.url });
   // 连接建立后的异步错误不会进入当前 Promise，因此单独监听并记录。
-  client.on('error', (error) => console.error('Redis 连接失败:', error));
+  client.on('error', (error) =>
+    logger.error('Redis 连接失败：', {
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      errno: error.errno,
+      syscall: error.syscall,
+    }),
+  );
   // connect 完成后再把客户端交给调用方。
   await client.connect();
   return client;

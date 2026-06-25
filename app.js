@@ -7,7 +7,8 @@
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
-const logger = require('morgan');
+const morganLogger = require('morgan');
+const logger = require('./utils/logger');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -15,7 +16,14 @@ const rateLimit = require('express-rate-limit');
 const env = require('./config/env');
 // 启动邮件消费者
 const { mailConsumer } = require('./utils/rabbit-mq');
-mailConsumer().catch((err) => console.error('邮件消费者启动失败：', err.message));
+mailConsumer().catch((err) =>
+  logger.error('邮件消费者启动失败：', { error: err.message, stack: err.stack }),
+);
+// 启动日志消费者（RabbitMQ → MySQL），异步执行，不阻塞 HTTP 服务启动
+const { logConsumer } = require('./utils/log-consumer');
+logConsumer().catch((err) =>
+  logger.error('日志消费者启动失败：', { error: err.message, stack: err.stack }),
+);
 const { adminAuth, userAuth } = require('./middlewares/auth');
 const { failure } = require('./utils/responses');
 
@@ -42,6 +50,7 @@ const adminChaptersRouter = require('./routes/admin/chapters');
 const adminChartsRouter = require('./routes/admin/charts');
 const adminAuthRouter = require('./routes/admin/auth');
 const adminAttachmentsRouter = require('./routes/admin/attachments');
+const adminLogsRouter = require('./routes/admin/logs');
 
 const app = express();
 
@@ -55,7 +64,7 @@ app.use(
   }),
 );
 // Morgan 的 dev 格式记录方法、路径、状态码和耗时，便于开发期排查请求。
-app.use(logger('dev'));
+app.use(morganLogger('dev'));
 // 按顺序解析 JSON、表单和 Cookie，后续路由可直接读取 req.body/req.cookies。
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -93,6 +102,7 @@ app.use('/admin/users', adminAuth, adminUsersRouter);
 app.use('/admin/courses', adminAuth, adminCoursesRouter);
 app.use('/admin/chapters', adminAuth, adminChaptersRouter);
 app.use('/admin/charts', adminAuth, adminChartsRouter);
+app.use('/admin/logs', adminAuth, adminLogsRouter);
 // 管理员登录用于签发 Token，因此不能提前挂载 adminAuth。
 app.use('/admin/auth', adminAuthRouter);
 app.use('/admin/uploads', adminAuth, uploadsRouter);
@@ -108,7 +118,30 @@ app.use((req, res) => {
 
 // 保险网：非 asyncRoute 中间件抛出的异常同样复用统一错误响应。
 app.use((error, req, res, _next) => {
-  failure(res, error);
+  failure(res, error, req);
+});
+
+// --- 全局未捕获异常处理 ---
+
+/**
+ * 捕获未被 Promise 链 catch 的异步异常。
+ * 记录日志后进程继续运行，但建议业务代码始终自行 try-catch。
+ */
+process.on('unhandledRejection', (reason) => {
+  logger.error('未捕获的 Promise 拒绝：', {
+    error: reason instanceof Error ? reason.message : reason,
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+/**
+ * 捕获未在 try-catch 中处理的同步异常。
+ * 记录日志后退出进程，因为出现 uncaughtException 时应用状态已不可信。
+ */
+process.on('uncaughtException', (error) => {
+  logger.error('未捕获的异常：', { error: error.message, stack: error.stack });
+  // 安全退出，防止出现不可恢复的状态
+  process.exit(1);
 });
 
 module.exports = app;

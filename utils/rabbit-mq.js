@@ -1,5 +1,6 @@
 const amqp = require('amqplib');
 const sendMail = require('./mail');
+const logger = require('./logger');
 
 const QUEUE_MAIL = 'mail_queue';
 
@@ -37,11 +38,15 @@ const connectToRabbitMQ = async () => {
  * 邮件队列生产者（发送消息）
  */
 const mailProducer = async (msg) => {
-  await connectToRabbitMQ();
-
-  channel.sendToQueue(QUEUE_MAIL, Buffer.from(JSON.stringify(msg)), {
-    persistent: true,
-  });
+  try {
+    await connectToRabbitMQ();
+    channel.sendToQueue(QUEUE_MAIL, Buffer.from(JSON.stringify(msg)), {
+      persistent: true,
+    });
+  } catch (error) {
+    // HTTP 响应已发送，此处只日志不抛，避免触发全局未捕获异常
+    logger.error('邮件队列生产者错误：', { error: error.message, stack: error.stack, msg });
+  }
 };
 
 /**
@@ -50,16 +55,20 @@ const mailProducer = async (msg) => {
 const mailConsumer = async () => {
   await connectToRabbitMQ();
 
-  channel.consume(QUEUE_MAIL, async (msg) => {
-    try {
-      const message = JSON.parse(msg.content.toString());
-      await sendMail(message.to, message.subject, message.html);
-    } catch (error) {
-      console.error('消费队列消息失败：', error);
-    }
-  }, { noAck: true });
+  channel.consume(
+    QUEUE_MAIL,
+    async (msg) => {
+      try {
+        const message = JSON.parse(msg.content.toString());
+        await sendMail(message.to, message.subject, message.html);
+      } catch (error) {
+        logger.error('邮件队列消费者错误：', { error: error.message, stack: error.stack, msg: msg.content.toString() });
+      }
+    },
+    { noAck: true },
+  );
 
-  console.log('邮件消费者已启动');
+  logger.info('邮件消费者已启动');
 };
 
 module.exports = {

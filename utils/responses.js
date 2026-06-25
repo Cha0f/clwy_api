@@ -9,6 +9,7 @@
 const createError = require('http-errors');
 const env = require('../config/env');
 const { formatTimestamps } = require('./date-time');
+const logger = require('./logger');
 
 /**
  * 请求成功
@@ -44,8 +45,9 @@ function success(res, message, data = {}, code = 200) {
  *
  * @param {object} res - Express 响应对象
  * @param {Error} error - 错误对象
+ * @param {object} [req] - 可选，Express 请求对象（用于日志记录上下文）
  */
-function failure(res, error) {
+function failure(res, error, req) {
   let statusCode = 500;
   let errors = ['服务器错误。'];
 
@@ -78,6 +80,18 @@ function failure(res, error) {
     statusCode = error.status;
     errors = [error.message];
   }
+
+  logger.error('服务器错误：', {
+    error: error.message,
+    stack: error.stack,
+    statusCode,
+    ...(req && {
+      method: req.method,
+      url: req.originalUrl || req.url,
+      params: req.params,
+      query: req.query,
+    }),
+  });
 
   // 开发模式下将详细错误打印到控制台（便于调试）
   if (env.nodeEnv === 'development') {

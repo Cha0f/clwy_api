@@ -24,7 +24,7 @@ function asyncRoute(handler) {
       await handler(req, res, next);
     } catch (error) {
       // 所有已知和未知异常都使用相同的响应格式返回。
-      failure(res, error);
+      failure(res, error, req);
     }
   };
 }
