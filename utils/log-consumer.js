@@ -52,9 +52,9 @@ async function logConsumer() {
           typeof info.message === 'string'
             ? info.message
             : JSON.stringify(info.message);
-        const meta = info.meta || {};
-        // 如果 meta 本身是字符串则保持，否则序列化。
-        const metaStr = typeof meta === 'string' ? meta : JSON.stringify(meta);
+        // 剥离已知字段，其余全部作为 meta 保存，保留原始 winston 日志的完整上下文
+        const { level: _l, message: _m, timestamp: _t, ...rest } = info;
+        const meta = typeof rest === 'string' ? rest : JSON.stringify(rest);
         const timestamp = info.timestamp
           ? new Date(info.timestamp)
           : new Date();
@@ -62,7 +62,7 @@ async function logConsumer() {
         await Log.create({
           level,
           message,
-          meta: metaStr,
+          meta,
           timestamp,
         });
 

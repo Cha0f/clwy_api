@@ -62,7 +62,12 @@ module.exports = class RabbitMQTransport extends Transport {
     try {
       this.connection = await amqp.connect(process.env.RABBITMQ_URL);
       this.channel = await this.connection.createChannel();
-      await this.channel.assertQueue(this.queue, { durable: true });
+      await this.channel.assertQueue(this.queue, {
+        durable: true,
+        // 最多保留 10000 条、单条不超过 64 KiB，防止消费者离线时无限制积压。
+        maxLength: 10000,
+        maxLengthBytes: 655360000,
+      });
 
       this.connection.on('close', () => {
         this.channel = null;

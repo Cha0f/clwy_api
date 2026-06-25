@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
           }
         },
         set(val) {
-          this.setDataValue('meta', JSON.stringify(val));
+          this.setDataValue('meta', typeof val === 'string' ? val : JSON.stringify(val));
         },
       },
       timestamp: DataTypes.DATE,
