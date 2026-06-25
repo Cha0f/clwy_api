@@ -19,6 +19,11 @@ const { mailConsumer } = require('./utils/rabbit-mq');
 mailConsumer().catch((err) =>
   logger.error('邮件消费者启动失败：', { error: err.message, stack: err.stack }),
 );
+// 启动日志消费者（RabbitMQ → MySQL），异步执行，不阻塞 HTTP 服务启动
+const { logConsumer } = require('./utils/log-consumer');
+logConsumer().catch((err) =>
+  logger.error('日志消费者启动失败：', { error: err.message, stack: err.stack }),
+);
 const { adminAuth, userAuth } = require('./middlewares/auth');
 const { failure } = require('./utils/responses');
 

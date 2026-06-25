@@ -1,6 +1,5 @@
 const { createLogger, format, transports } = require('winston');
-const MySQLTransport = require('winston-mysql');
-const env = require('../config/env');
+const RabbitMQTransport = require('./logger-transport');
 
 const logger = createLogger({
   level: 'info',
@@ -16,24 +15,9 @@ const logger = createLogger({
         format.simple(),
       ),
     }),
+    // 日志通过 RabbitMQ 异步写入 MySQL，不阻塞主流程。
+    new RabbitMQTransport({ queue: 'log_queue' }),
   ],
 });
-
-// 所有数据库配置齐备后才将日志写入 MySQL，否则仅以控制台输出。
-const dbHost = env.database.host;
-const dbUser = env.database.username;
-const dbPassword = env.database.password;
-const dbName = env.database.name;
-if (dbHost && dbUser && dbPassword && dbName) {
-  logger.add(
-    new MySQLTransport({
-      host: dbHost,
-      user: dbUser,
-      password: dbPassword,
-      database: dbName,
-      table: 'Logs',
-    }),
-  );
-}
 
 module.exports = logger;
