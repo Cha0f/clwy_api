@@ -4,7 +4,7 @@
  * 一次返回推荐、人气和入门课程；聚合结果缓存 30 分钟。
  */
 const express = require('express');
-const { Category, Course, User } = require('../models');
+const { Category, Course1, User } = require('../models');
 const { cacheKeys, remember } = require('../utils/cache');
 const { success } = require('../utils/responses');
 const { asyncRoute } = require('../utils/routes');
