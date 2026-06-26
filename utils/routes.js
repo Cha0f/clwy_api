@@ -42,7 +42,10 @@ function asyncRoute(handler) {
 function pickFields(source, allowedFields) {
   return allowedFields.reduce((result, field) => {
     // 逐个复制白名单字段，杜绝 mass assignment。
-    result[field] = source[field];
+    // 过滤 undefined 值，避免 Sequelize update 将未提供的字段置为 NULL
+    if (source[field] !== undefined) {
+      result[field] = source[field];
+    }
     return result;
   }, {});
 }

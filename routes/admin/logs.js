@@ -3,18 +3,18 @@ const router = express.Router();
 const { Log } = require('../../models');
 const { NotFound } = require('http-errors');
 const { success, failure } = require('../../utils/responses');
+const { paginate } = require('../../utils/routes');
 
 /**
- * 查询日志列表
+ * 查询日志列表（分页）
  * GET /admin/logs
+ * @query {number} page - 当前页
+ * @query {number} pageSize - 每页数量
  */
 router.get('/', async function (req, res) {
   try {
-    const logs = await Log.findAll({
-      order: [['id', 'DESC']],
-    });
-
-    success(res, '查询日志列表成功。', { logs: logs });
+    const data = await paginate(Log, req.query, { order: [['id', 'DESC']] }, 'logs');
+    success(res, '查询日志列表成功。', data);
   } catch (error) {
     failure(res, error, req);
   }
@@ -27,7 +27,6 @@ router.get('/', async function (req, res) {
 router.get('/:id', async function (req, res) {
   try {
     const log = await getLog(req);
-
     success(res, '查询日志成功。', { log });
   } catch (error) {
     failure(res, error, req);
@@ -41,7 +40,6 @@ router.get('/:id', async function (req, res) {
 router.delete('/clear', async function (req, res) {
   try {
     await Log.destroy({ truncate: true });
-
     success(res, '清空日志成功。');
   } catch (error) {
     failure(res, error, req);
@@ -56,7 +54,6 @@ router.delete('/:id', async function (req, res) {
   try {
     const log = await getLog(req);
     await log.destroy();
-
     success(res, '删除日志成功。');
   } catch (error) {
     failure(res, error, req);
@@ -68,12 +65,10 @@ router.delete('/:id', async function (req, res) {
  */
 async function getLog(req) {
   const { id } = req.params;
-
   const log = await Log.findByPk(id);
   if (!log) {
     throw new NotFound(`ID: ${id}的日志未找到。`);
   }
-
   return log;
 }
 

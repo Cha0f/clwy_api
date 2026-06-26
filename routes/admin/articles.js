@@ -26,8 +26,9 @@ router.get(
   asyncRoute(async (req, res) => {
     const title = req.query.title ? String(req.query.title).trim() : '';
     const where = {};
-    // 排序：通过 sortBy / order 查询参数控制，默认 id DESC
-    const sortBy = req.query.sortBy || 'id';
+    // 排序：通过 sortBy / order 查询参数控制，默认 id DESC，只允许白名单字段
+    const SORTABLE = ['id', 'title', 'createdAt', 'updatedAt'];
+    const sortBy = SORTABLE.includes(req.query.sortBy) ? req.query.sortBy : 'id';
     const order = (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     const options = { where, order: [[sortBy, order]] };
 
