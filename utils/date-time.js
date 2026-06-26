@@ -6,7 +6,7 @@
 const moment = require('moment');
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
-const TIMESTAMP_FIELDS = new Set(['createdAt', 'updatedAt']);
+const TIMESTAMP_FIELDS = new Set(['createdAt', 'updatedAt', 'timestamp']);
 
 /**
  * 递归格式化对象、数组和 Sequelize 实例中的 createdAt、updatedAt。
