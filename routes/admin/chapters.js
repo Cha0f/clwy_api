@@ -23,6 +23,8 @@ function chapterQueryOptions() {
  * 获取章节列表（需指定课程ID）。
  * @query {number} courseId - 课程 ID（必填）
  * @query {string} title - 章节标题（模糊搜索）
+ * @query {string} sortBy - 排序字段，默认 id
+ * @query {string} order - 排序方向（ASC / DESC），默认 DESC
  * @query {number} page - 当前页
  * @query {number} pageSize - 每页数量
  * @returns {Object} { chapters, pagination: { total, currentPage, pageSize } }
@@ -44,10 +46,7 @@ router.get(
       {
         ...chapterQueryOptions(),
         where,
-        order: [
-          ['rank', 'ASC'],
-          ['id', 'ASC'],
-        ],
+        order: [[req.query.sortBy || 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
       },
       'chapters',
     );

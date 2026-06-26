@@ -15,6 +15,8 @@ const router = express.Router();
  * 获取文章列表（支持标题筛选和回收站查询）。
  * @query {string} title - 文章标题（模糊搜索）
  * @query {string} deleted - 是否查询回收站（"true" 时查软删除记录）
+ * @query {string} sortBy - 排序字段，默认 id
+ * @query {string} order - 排序方向（ASC / DESC），默认 DESC
  * @query {number} page - 当前页
  * @query {number} pageSize - 每页数量
  * @returns {Object} { articles, pagination: { total, currentPage, pageSize } }
@@ -24,7 +26,10 @@ router.get(
   asyncRoute(async (req, res) => {
     const title = req.query.title ? String(req.query.title).trim() : '';
     const where = {};
-    const options = { where, order: [['id', 'DESC']] };
+    // 排序：通过 sortBy / order 查询参数控制，默认 id DESC
+    const sortBy = req.query.sortBy || 'id';
+    const order = (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const options = { where, order: [[sortBy, order]] };
 
     // deleted=true 时只查询回收站中的软删除记录。
     if (req.query.deleted === 'true') {

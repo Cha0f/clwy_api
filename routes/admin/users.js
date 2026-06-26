@@ -29,6 +29,8 @@ const CREATE_FIELDS = [...PROFILE_FIELDS, 'password', 'role'];
  * @query {string} username - 用户名（精确匹配）
  * @query {number} role - 角色（精确匹配，0 普通用户 / 100 管理员）
  * @query {string} nickname - 昵称（模糊搜索）
+ * @query {string} sortBy - 排序字段，默认 id
+ * @query {string} order - 排序方向（ASC / DESC），默认 DESC
  * @query {number} page - 当前页
  * @query {number} pageSize - 每页数量
  * @returns {Object} { users, pagination: { total, currentPage, pageSize } }
@@ -46,7 +48,10 @@ router.get(
     const nickname = req.query.nickname ? String(req.query.nickname).trim() : '';
     if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
 
-    const data = await paginate(User, req.query, { where, order: [['id', 'DESC']] }, 'users');
+    const data = await paginate(User, req.query, {
+      where,
+      order: [[req.query.sortBy || 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
+    }, 'users');
     success(res, '查询用户列表成功。', data);
   }),
 );
