@@ -12,8 +12,6 @@ const logger = require('./utils/logger');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-
-const env = require('./config/env');
 // 启动邮件消费者
 const { mailConsumer } = require('./utils/rabbit-mq');
 mailConsumer().catch((err) =>
@@ -56,13 +54,26 @@ const app = express();
 
 // Helmet 在业务路由前统一写入 CSP、HSTS、X-Frame-Options 等安全响应头。
 app.use(helmet());
-// CORS 使用明确的来源白名单，并允许前端携带认证信息。
+/**
+ * CORS 配置。
+ *
+ * 当前模式：允许所有来源 + credentials（开发/测试环境适用）。
+ * 如需切换回白名单模式，取消下方注释并注释掉当前配置即可。
+ */
 app.use(
   cors({
-    origin: env.cors.origins,
+    origin: (origin, callback) => callback(null, origin || '*'),
     credentials: true,
   }),
 );
+// --- 白名单模式（生产环境推荐） ---
+// const env = require('./config/env');
+// app.use(
+//   cors({
+//     origin: env.cors.origins,
+//     credentials: true,
+//   }),
+// );
 // Morgan 的 dev 格式记录方法、路径、状态码和耗时，便于开发期排查请求。
 app.use(morganLogger('dev'));
 // 按顺序解析 JSON、表单和 Cookie，后续路由可直接读取 req.body/req.cookies。
