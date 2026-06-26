@@ -57,13 +57,16 @@ router.get(
     if (req.query.recommended) where.recommended = req.query.recommended === 'true';
     if (req.query.introductory) where.introductory = req.query.introductory === 'true';
 
+    // sortBy 白名单
+    const COURSE_SORTABLE = ['id', 'name', 'createdAt', 'updatedAt', 'likesCount', 'chaptersCount'];
+
     const data = await paginate(
       Course,
       req.query,
       {
         where,
         include: listAssociations(),
-        order: [[req.query.sortBy || 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
+        order: [[COURSE_SORTABLE.includes(req.query.sortBy) ? req.query.sortBy : 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
       },
       'courses',
     );

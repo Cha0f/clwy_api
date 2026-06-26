@@ -48,9 +48,14 @@ router.get(
     const nickname = req.query.nickname ? String(req.query.nickname).trim() : '';
     if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
 
+    // sortBy 白名单
+    const USER_SORTABLE = ['id', 'username', 'email', 'createdAt', 'updatedAt', 'role'];
+    const userSortBy = USER_SORTABLE.includes(req.query.sortBy) ? req.query.sortBy : 'id';
+    const userOrder = (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
     const data = await paginate(User, req.query, {
       where,
-      order: [[req.query.sortBy || 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
+      order: [[userSortBy, userOrder]],
     }, 'users');
     success(res, '查询用户列表成功。', data);
   }),

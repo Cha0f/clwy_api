@@ -40,13 +40,18 @@ router.get(
     const where = { courseId: req.query.courseId };
     if (title) where.title = { [Op.like]: `%${title}%` };
 
+    // sortBy 白名单
+    const CHAPTER_SORTABLE = ['id', 'title', 'rank', 'createdAt', 'updatedAt'];
+    const chapterSortBy = CHAPTER_SORTABLE.includes(req.query.sortBy) ? req.query.sortBy : 'id';
+    const chapterOrder = (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
     const data = await paginate(
       Chapter,
       req.query,
       {
         ...chapterQueryOptions(),
         where,
-        order: [[req.query.sortBy || 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
+        order: [[chapterSortBy, chapterOrder]],
       },
       'chapters',
     );
