@@ -35,6 +35,8 @@ function listAssociations() {
  * @query {string} name - 课程名称（模糊搜索）
  * @query {boolean} recommended - 推荐课程
  * @query {boolean} introductory - 入门课程
+ * @query {string} sortBy - 排序字段，默认 id
+ * @query {string} order - 排序方向（ASC / DESC），默认 DESC
  * @query {number} page - 当前页
  * @query {number} pageSize - 每页数量
  * @returns {Object} { courses, pagination: { total, currentPage, pageSize } }
@@ -61,7 +63,7 @@ router.get(
       {
         where,
         include: listAssociations(),
-        order: [['id', 'DESC']],
+        order: [[req.query.sortBy || 'id', (req.query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
       },
       'courses',
     );
